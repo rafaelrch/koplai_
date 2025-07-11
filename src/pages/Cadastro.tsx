@@ -91,11 +91,17 @@ export default function Cadastro() {
 
       // PASSO 2: Se o cadastro foi bem-sucedido
       if (authData.user) {
+        // Inserir na tabela profiles
+        await supabase.from('profiles').insert({
+          id: authData.user.id,
+          name: form.nome + ' ' + form.sobrenome,
+          email: form.email,
+          phone: form.telefone
+        });
         console.log('Usuário criado com sucesso:', authData.user);
         setSuccess(true);
         setForm({ nome: '', sobrenome: '', email: '', telefone: '', senha: '' });
         setTouched({});
-        
         // Redirecionar para login após 2 segundos
         setTimeout(() => {
           window.location.href = '/login';
@@ -131,7 +137,7 @@ export default function Cadastro() {
         {/* Toast de sucesso */}
         {success && (
           <div className="mb-4 p-3 rounded-lg bg-green-100 text-green-700 text-center text-sm">
-            ✅ Cadastro realizado com sucesso! Redirecionando para login...
+            ✅ Cadastro realizado com sucesso! Por favor, confirme seu cadastro no email antes de fazer login.
           </div>
         )}
 
