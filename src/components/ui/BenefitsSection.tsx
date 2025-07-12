@@ -43,7 +43,7 @@ const BenefitsSection: React.FC = () => {
         <span className="mb-6 px-6 py-2 rounded-full bg-[#635bff] bg-opacity-90 text-white text-base font-regualr tracking-tighter">Benefícios e Diferenciais</span>
         <h2 className="text-4xl md:text-5xl font-regular text-gray-100 text-center mb-2 tracking-tighter">Produza, Programe e Publique</h2>
         <p className="text-lg text-gray-400 text-center mb-12">Tudo em um lugar só</p>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
           {/* Primeira linha: 3 cards */}
           {benefits.slice(0, 3).map((b, i) => (
             <div
@@ -65,7 +65,7 @@ const BenefitsSection: React.FC = () => {
             </div>
           ))}
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full mt-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full mt-4">
           {/* Segunda linha: 2 cards */}
           {benefits.slice(3).map((b, i) => (
             <div

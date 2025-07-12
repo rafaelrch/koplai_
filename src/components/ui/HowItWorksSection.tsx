@@ -1,4 +1,5 @@
 import React from "react";
+import { motion } from "framer-motion";
 
 const HowItWorksSection: React.FC = () => {
   return (
@@ -17,11 +18,29 @@ const HowItWorksSection: React.FC = () => {
         <p className="text-lg text-[#b7b6fa] text-center max-w-2xl font-regular mb-12">
           Assista esse vídeo rápido e descubra por dentro da plataforma e das nossas ferramentas.
         </p>
-        <div className="w-full flex justify-center">
-          <div className="w-full max-w-3xl h-[350px] md:h-[400px] bg-white rounded-2xl border-4 border-[#7977f7] flex items-center justify-center shadow-lg" style={{ boxShadow: '0 0 0 4px #7977f733' }}>
-            {/* Vídeo ou imagem aqui */}
+        <motion.div
+          initial={{
+            opacity: 0,
+          }}
+          animate={{
+            opacity: 1,
+          }}
+          transition={{
+            duration: 0.3,
+            delay: 1.2,
+          }}
+          className=" relative z-10 mt-10 rounded-3xl border border-[#A4A6E7] bg-[#2B305E]/40 p-5  dark:border-neutral-800 dark:bg-neutral-900"
+        >
+          <div className="w-full overflow-hidden rounded-xl border border-gray-300/50 dark:border-gray-700">
+            <img
+              src="https://assets.aceternity.com/pro/aceternity-landing.webp"
+              alt="Landing page preview"
+              className="aspect-[16/9] h-auto w-full object-cover"
+              height={1000}
+              width={1000}
+            />
           </div>
-        </div>
+        </motion.div>
       </div>
     </section>
   );

@@ -6,6 +6,7 @@ import { AnimatedCarousel } from '../components/ui/logo-carousel';
 import BenefitsSection from "../components/ui/BenefitsSection";
 import FastContentSection from "../components/ui/FastContentSection";
 import HowItWorksSection from "../components/ui/HowItWorksSection";
+import TestimonialsSection from "../components/ui/TestimonialsSection";
 
 export default function Landing() {
   const heroRef = useRef<HTMLDivElement>(null);
@@ -76,7 +77,7 @@ export default function Landing() {
       </nav>
       {/* Hero Section */}
       <div ref={heroRef}>
-        <HeroSectionOne />
+      <HeroSectionOne />
       </div>
       {/* Slider de logos */}
       <AnimatedCarousel
@@ -136,7 +137,7 @@ export default function Landing() {
                   >
                     {feature}
                   </span>
-                </li>
+              </li>
               ))}
             </ul>
             <button className="mt-4 px-8 py-3 rounded-xl bg-blue-600 text-white font-regular text-base  hover:bg-blue-700 transition duration-200">Teste agora de graça</button>
@@ -150,6 +151,7 @@ export default function Landing() {
       <BenefitsSection />
       <FastContentSection />
       <HowItWorksSection />
+      <TestimonialsSection />
     </div>
   );
 } 
