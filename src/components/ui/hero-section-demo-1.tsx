@@ -4,7 +4,11 @@ import { motion } from "framer-motion";
 import { Cover } from "@/components/ui/cover";
 import { HoverBorderGradient } from "@/components/ui/hover-border-gradient";
 
-export default function HeroSectionOne() {
+interface HeroSectionOneProps {
+  onJoinQueue?: () => void;
+}
+
+export default function HeroSectionOne({ onJoinQueue }: HeroSectionOneProps) {
   return (
     <div className="relative mx-auto mt-32 mb-10 flex w-full max-w-[1600px] flex-col items-center justify-center">
       <div className="px-4 py-10 md:py-20">
@@ -57,8 +61,9 @@ export default function HeroSectionOne() {
             containerClassName="rounded-full"
             as="button"
             className="bg-gradient-to-r from-blue-500 via-blue-600 to-blue-700 text-white font-semibold text-lg px-16 py-3 shadow-lg"
+            onClick={onJoinQueue}
           >
-            Testar grátis
+            Entrar na fila de espera
           </HoverBorderGradient>
         </div>
 
@@ -77,9 +82,9 @@ export default function HeroSectionOne() {
         >
           <div className="w-full overflow-hidden rounded-xl border border-gray-300/50 dark:border-gray-700">
             <img
-              src="https://assets.aceternity.com/pro/aceternity-landing.webp"
-              alt="Landing page preview"
-              className="aspect-[16/9] h-auto w-full object-cover"
+              src="/tela-koplai.png"
+              alt="Koplai Dashboard Preview"
+              className="h-auto w-full object-contain"
               height={1000}
               width={1000}
             />

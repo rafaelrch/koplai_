@@ -7,7 +7,7 @@ const FastContentSection: React.FC = () => {
       <div className="max-w-4xl mx-auto flex flex-col items-center ">
         <span className="mb-8 px-3 py-2 rounded-full bg-[#5756f5] text-white text-lg font-regular tracking-tighter flex items-center justify-between gap-2">
           <span className="inline-block w-10 h-10 rounded-full bg-[#7977f7] border border-[#b7b6fa] flex items-center justify-center"><Plus size={20}/></span>
-          Benefícios e Diferenciais
+          Fácil de criar conteúdo
         </span>
         <h2 className="text-5xl md:text-6xl font-regular text-black text-center mb-4 tracking-tighter">Crie conteúdos em segundos</h2>
         <p className="text-lg text-[#8b89b6] text-center max-w-xl font-regular">

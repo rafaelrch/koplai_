@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Settings, Home, BarChart3, Bot, Users, Lightbulb, Video, Image, History, MessageCircle, LogOut } from 'lucide-react';
+import { Settings, Home, BarChart3, Bot, Users, Lightbulb, Video, Image, History, MessageCircle, LogOut, FolderOpen, MessageSquare, UserPlus } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import ReactDOM from 'react-dom';
 import { Link, useLocation } from 'react-router-dom';
@@ -12,9 +12,20 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
   const location = useLocation();
   const currentPath = location.pathname;
+
+  // Estado para usuário logado
+  const [user, setUser] = useState<any>(null);
+  const [company, setCompany] = useState<any>(null);
+  const [isCompanyOwner, setIsCompanyOwner] = useState(false);
+  const [userRole, setUserRole] = useState<string>('');
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+
   const menuItems = [
     { name: 'Introdução', icon: Home, path: '/' },
     { name: 'Agentes', icon: Bot, path: '/agentes' },
+    { name: 'Workspace', icon: FolderOpen, path: '/workspace' },
+    { name: 'Chat', icon: MessageSquare, path: '/chat' },
+    ...(isCompanyOwner ? [{ name: 'Convidar Usuários', icon: UserPlus, path: '/invite-users' }] : []),
     { name: 'Histórico', icon: History, path: '/historico' },
     { name: 'Comunidade', icon: Users, path: '/comunidade' },
     { name: 'Sugestões', icon: MessageCircle, path: '/sugestoes' },
@@ -23,14 +34,54 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
     { name: 'Configuração', icon: Settings, path: '/configuracao' },
   ];
 
-  // Estado para usuário logado
-  const [user, setUser] = useState<any>(null);
-  const [showLogoutModal, setShowLogoutModal] = useState(false);
-
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      setUser(data.user);
-    });
+           const fetchUserAndCompany = async () => {
+         const { data: { user } } = await supabase.auth.getUser();
+         setUser(user);
+
+         if (user) {
+           // Buscar dados da empresa do usuário
+           const { data: profile } = await supabase
+             .from('profiles')
+             .select('company_id, is_company_owner')
+             .eq('id', user.id)
+             .single();
+
+           if (profile?.company_id) {
+             setIsCompanyOwner(profile.is_company_owner || false);
+             
+             const { data: companyData } = await supabase
+               .from('companies')
+               .select('*')
+               .eq('id', profile.company_id)
+               .single();
+             
+             setCompany(companyData);
+
+             // Buscar cargo do usuário na empresa
+             const { data: companyUser } = await supabase
+               .from('company_users')
+               .select('role, position')
+               .eq('company_id', profile.company_id)
+               .eq('user_id', user.id)
+               .single();
+
+             if (companyUser) {
+               let roleText = '';
+               if (companyUser.role === 'employee') {
+                 roleText = companyUser.position || 'Funcionário';
+               } else if (companyUser.role === 'manager') {
+                 roleText = companyUser.position || 'Gerente';
+               } else if (companyUser.role === 'admin') {
+                 roleText = companyUser.position || 'Administrador';
+               }
+               setUserRole(roleText);
+             }
+           }
+         }
+       };
+
+    fetchUserAndCompany();
   }, []);
 
   async function handleLogout() {
@@ -102,7 +153,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
               {user?.user_metadata?.nome || ''} {user?.user_metadata?.sobrenome || ''}
               {!(user?.user_metadata?.nome || user?.user_metadata?.sobrenome) && user?.email}
             </span>
-            <span className="text-xs text-gray-400 truncate">{user?.email || ''}</span>
+                         <span className="text-xs text-gray-400 truncate">
+               {company ? company.name : user?.email || ''}
+             </span>
+             {company && (
+               <span className="text-xs text-blue-600 truncate">
+                 {isCompanyOwner ? 'Proprietário' : userRole || 'Funcionário'}
+               </span>
+             )}
           </div>
           <LogOut className="w-5 h-5 text-gray-400" />
         </div>

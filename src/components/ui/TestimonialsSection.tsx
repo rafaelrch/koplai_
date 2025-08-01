@@ -1,4 +1,5 @@
 import React from "react";
+import { User } from "lucide-react";
 
 const testimonials = [
   {
@@ -19,26 +20,46 @@ const testimonials = [
     avatar: "https://randomuser.me/api/portraits/women/65.jpg",
     text: "O Kanban visual e o chat integrado facilitam muito a colaboração com meu time. Plataforma essencial!",
   },
+  {
+    name: "Juliana Alves",
+    role: "Gestora de Conteúdo",
+    avatar: "https://randomuser.me/api/portraits/women/65.jpg",
+    text: "O Kanban visual e o chat integrado facilitam muito a colaboração com meu time. Plataforma essencial!",
+  },
+  {
+    name: "Juliana Alves",
+    role: "Gestora de Conteúdo",
+    avatar: "https://randomuser.me/api/portraits/women/65.jpg",
+    text: "O Kanban visual e o chat integrado facilitam muito a colaboração com meu time. Plataforma essencial!",
+  },
+  {
+    name: "Juliana Alves",
+    role: "Gestora de Conteúdo",
+    avatar: "https://randomuser.me/api/portraits/women/65.jpg",
+    text: "O Kanban visual e o chat integrado facilitam muito a colaboração com meu time. Plataforma essencial!",
+  },
 ];
 
 const TestimonialsSection: React.FC = () => {
   return (
     <section
+      id="depoimentos"
       className="w-full py-24 px-2 flex flex-col items-center justify-center relative"
       style={{
         background:
           "radial-gradient(ellipse 70% 50% at 50% 120%, #5756f5 0%, #000623 100%)",
       }}
     >
-      <div className="max-w-4xl mx-auto flex flex-col items-center">
-        <span className="mb-8 px-6 py-2 rounded-full bg-[#5756f5] text-white text-lg font-regular tracking-tighter flex items-center gap-2">
+      <div className="max-w-6xl mx-auto flex flex-col items-center">
+        <span className="mb-8 px-3 py-2 rounded-full bg-[#5756f5] text-white text-lg font-regular tracking-tighter flex items-center gap-2">
+        <span className="inline-block w-10 h-10 rounded-full bg-[#7977f7] border border-[#b7b6fa] flex items-center justify-center"><User size={20}/></span>
           Depoimentos
         </span>
         <h2 className="text-5xl md:text-7xl font-regular text-[#cbd0e4] text-center mb-20 tracking-tighter">Veja o que nossos clientes andam falando</h2>
 
-        <div className="mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10 max-w-7xl">
+        <div className="mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-7xl ">
           {testimonials.map((t, i) => (
-            <div key={i} className="relative rounded-2xl p-8 border border-[#23244a]  flex flex-col justify-between min-h-[320px] overflow-hidden">
+            <div key={i} className="relative rounded-xl p-8 border border-[#23244a]  flex flex-col justify-between min-h-[220px]  overflow-hidden ">
               {/* Gradiente elíptico de fundo */}
               <div
                 className="absolute inset-0 pointer-events-none"

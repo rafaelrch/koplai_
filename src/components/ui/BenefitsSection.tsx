@@ -33,6 +33,7 @@ const benefits = [
 const BenefitsSection: React.FC = () => {
   return (
     <section
+      id="funcionalidades"
       className="w-full relative py-24 px-2 overflow-hidden"
       style={{
         background:
