@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Settings, Home, BarChart3, Bot, Users, Lightbulb, Video, Image, History, MessageCircle, LogOut, FolderOpen, MessageSquare, UserPlus } from 'lucide-react';
+import { Settings, BarChart3, Bot, Users, Lightbulb, Video, Image, History, MessageCircle, LogOut } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import ReactDOM from 'react-dom';
 import { Link, useLocation } from 'react-router-dom';
@@ -19,13 +19,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
   const [isCompanyOwner, setIsCompanyOwner] = useState(false);
   const [userRole, setUserRole] = useState<string>('');
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   const menuItems = [
-    { name: 'Introdução', icon: Home, path: '/' },
     { name: 'Agentes', icon: Bot, path: '/agentes' },
-    { name: 'Workspace', icon: FolderOpen, path: '/workspace' },
-    { name: 'Chat', icon: MessageSquare, path: '/chat' },
-    ...(isCompanyOwner ? [{ name: 'Convidar Usuários', icon: UserPlus, path: '/invite-users' }] : []),
     { name: 'Histórico', icon: History, path: '/historico' },
     { name: 'Comunidade', icon: Users, path: '/comunidade' },
     { name: 'Sugestões', icon: MessageCircle, path: '/sugestoes' },
@@ -35,51 +32,57 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
   ];
 
   useEffect(() => {
-           const fetchUserAndCompany = async () => {
-         const { data: { user } } = await supabase.auth.getUser();
-         setUser(user);
+    const fetchUserAndCompany = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        setUser(user);
 
-         if (user) {
-           // Buscar dados da empresa do usuário
-           const { data: profile } = await supabase
-             .from('profiles')
-             .select('company_id, is_company_owner')
-             .eq('id', user.id)
-             .single();
+        if (user) {
+          // Buscar dados da empresa do usuário
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('company_id, is_company_owner')
+            .eq('id', user.id)
+            .single();
 
-           if (profile?.company_id) {
-             setIsCompanyOwner(profile.is_company_owner || false);
-             
-             const { data: companyData } = await supabase
-               .from('companies')
-               .select('*')
-               .eq('id', profile.company_id)
-               .single();
-             
-             setCompany(companyData);
+          if (profile?.company_id) {
+            setIsCompanyOwner(profile.is_company_owner || false);
+            
+            const { data: companyData } = await supabase
+              .from('companies')
+              .select('*')
+              .eq('id', profile.company_id)
+              .single();
+            
+            setCompany(companyData);
 
-             // Buscar cargo do usuário na empresa
-             const { data: companyUser } = await supabase
-               .from('company_users')
-               .select('role, position')
-               .eq('company_id', profile.company_id)
-               .eq('user_id', user.id)
-               .single();
+            // Buscar cargo do usuário na empresa
+            const { data: companyUser } = await supabase
+              .from('company_users')
+              .select('role, position')
+              .eq('company_id', profile.company_id)
+              .eq('user_id', user.id)
+              .single();
 
-             if (companyUser) {
-               let roleText = '';
-               if (companyUser.role === 'employee') {
-                 roleText = companyUser.position || 'Funcionário';
-               } else if (companyUser.role === 'manager') {
-                 roleText = companyUser.position || 'Gerente';
-               } else if (companyUser.role === 'admin') {
-                 roleText = companyUser.position || 'Administrador';
-               }
-               setUserRole(roleText);
-             }
-           }
-         }
-       };
+            if (companyUser) {
+              let roleText = '';
+              if (companyUser.role === 'employee') {
+                roleText = companyUser.position || 'Funcionário';
+              } else if (companyUser.role === 'manager') {
+                roleText = companyUser.position || 'Gerente';
+              } else if (companyUser.role === 'admin') {
+                roleText = companyUser.position || 'Administrador';
+              }
+              setUserRole(roleText);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Erro ao carregar dados do usuário:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
     fetchUserAndCompany();
   }, []);
@@ -140,36 +143,47 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
               );
             })}
           </nav>
-        </div>
+                </div>
+        
         {/* Usuário logado fixo no rodapé */}
-        <div className="flex items-center gap-3 px-4 py-2 mb-2 mt-2 rounded-lg hover:bg-gray-100 cursor-pointer" onClick={() => setShowLogoutModal(true)}>
-          <img
-            src={`https://ui-avatars.com/api/?name=${encodeURIComponent((user?.user_metadata?.nome || '') + ' ' + (user?.user_metadata?.sobrenome || '') || user?.email || 'U')}&background=3b82f6&color=fff`}
-            alt={((user?.user_metadata?.nome || '') + ' ' + (user?.user_metadata?.sobrenome || '')).trim() || user?.email || 'Usuário'}
-            className="w-10 h-10 rounded-full object-cover"
-          />
-          <div className="flex flex-col flex-1 min-w-0">
-            <span className="text-base font-semibold text-black leading-tight truncate">
-              {user?.user_metadata?.nome || ''} {user?.user_metadata?.sobrenome || ''}
-              {!(user?.user_metadata?.nome || user?.user_metadata?.sobrenome) && user?.email}
-            </span>
-                         <span className="text-xs text-gray-400 truncate">
-               {company ? company.name : user?.email || ''}
-             </span>
-             {company && (
-               <span className="text-xs text-blue-600 truncate">
-                 {isCompanyOwner ? 'Proprietário' : userRole || 'Funcionário'}
-               </span>
-             )}
+        {isLoading ? (
+          <div className="flex items-center gap-3 px-4 py-2 mb-2 mt-2 rounded-lg">
+            <div className="w-10 h-10 rounded-full bg-gray-200 animate-pulse"></div>
+            <div className="flex flex-col flex-1 min-w-0">
+              <div className="h-4 bg-gray-200 rounded animate-pulse mb-1"></div>
+              <div className="h-3 bg-gray-200 rounded animate-pulse w-2/3"></div>
+            </div>
+            <div className="w-5 h-5 bg-gray-200 rounded animate-pulse"></div>
           </div>
-          <LogOut className="w-5 h-5 text-gray-400" />
-        </div>
+        ) : (
+          <div className="flex items-center gap-3 px-4 py-2 mb-2 mt-2 rounded-lg hover:bg-gray-100 cursor-pointer" onClick={() => setShowLogoutModal(true)}>
+            <img
+              src={`https://ui-avatars.com/api/?name=${encodeURIComponent((user?.user_metadata?.nome || '') + ' ' + (user?.user_metadata?.sobrenome || '') || user?.email || 'U')}&background=3b82f6&color=fff`}
+              alt={((user?.user_metadata?.nome || '') + ' ' + (user?.user_metadata?.sobrenome || '')).trim() || user?.email || 'Usuário'}
+              className="w-10 h-10 rounded-full object-cover"
+            />
+            <div className="flex flex-col flex-1 min-w-0">
+              <span className="text-base font-semibold text-black leading-tight truncate">
+                {user?.user_metadata?.nome && user?.user_metadata?.sobrenome 
+                  ? `${user.user_metadata.nome} ${user.user_metadata.sobrenome}`
+                  : user?.user_metadata?.nome 
+                  ? user.user_metadata.nome
+                  : user?.email?.split('@')[0] || 'Usuário'
+                }
+              </span>
+              <span className="text-xs text-gray-400 truncate">
+                {user?.email || ''}
+              </span>
+            </div>
+            <LogOut className="w-5 h-5 text-gray-400" />
+          </div>
+        )}
 
         {/* Modal de confirmação de logout */}
         {showLogoutModal && ReactDOM.createPortal(
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
             <div className="bg-white rounded-xl shadow-lg p-8 max-w-xs w-full flex flex-col items-center">
-              <span className="text-lg font-semibold mb-4">Deseja realmente sair?</span>
+              <span className="text-lg font-semibold mb-4 text-black">Deseja realmente sair?</span>
               <div className="flex gap-4 mt-2 w-full">
                 <button
                   className="flex-1 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 transition"

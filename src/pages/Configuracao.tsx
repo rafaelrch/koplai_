@@ -40,21 +40,21 @@ export default function Configuracao() {
         
         <div className="w-full max-w-3xl bg-white rounded-2xl flex flex-col md:flex-col gap-8 p-8">
           <div>
-          <h1 className="text-3xl font-bold text-center mb-8">Configuração</h1>
+          <h1 className="text-3xl font-bold text-center mb-8 text-black">Configuração</h1>
           </div>
           {/* Formulário */}
           <form className="flex-1 flex flex-col gap-5">
             <div>
               <Label htmlFor="nome" className="text-black">Nome</Label>
-              <Input id="nome" value={profile.name} readOnly className="focus-visible:ring-indigo-500 bg-gray-100" />
+              <Input id="nome" value={profile.name} readOnly className="text-black focus-visible:ring-indigo-500 bg-gray-100" />
             </div>
             <div>
               <Label htmlFor="email" className="text-black">Email</Label>
-              <Input id="email" type="email" value={profile.email} readOnly className="focus-visible:ring-indigo-500 bg-gray-100" />
+              <Input id="email" type="email" value={profile.email} readOnly className=" text-black focus-visible:ring-indigo-500 bg-gray-100" />
             </div>
             <div>
               <Label htmlFor="telefone" className="text-black">Telefone</Label>
-              <Input id="telefone" type="tel" value={profile.phone} readOnly className="focus-visible:ring-indigo-500 bg-gray-100" />
+              <Input id="telefone" type="tel" value={profile.phone} readOnly className=" text-black focus-visible:ring-indigo-500 bg-gray-100" />
             </div>
           </form>
         </div>

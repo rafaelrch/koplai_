@@ -3,7 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useParams } from "react-router-dom";
-import Index from "./pages/Index";
+
 import NotFound from "./pages/NotFound";
 import Cadastro from "./pages/Cadastro";
 import Login from "./pages/Login";
@@ -17,9 +17,7 @@ import Video from "./pages/Video";
 import Imagem from "./pages/Imagem";
 import Configuracao from "./pages/Configuracao";
 import Landing from "./pages/Landing";
-import Workspace from "./pages/Workspace";
-import Chat from "./pages/Chat";
-import InviteUsers from "./pages/InviteUsers";
+
 import AcceptInvite from "./pages/AcceptInvite";
 
 // Wrapper para passar o id da URL como prop agentId
@@ -37,14 +35,12 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Index />} />
+          <Route path="/" element={<AgentsPage />} />
           <Route path="/agentes" element={<AgentsPage />} />
           <Route path="/cadastro" element={<Cadastro />} />
           <Route path="/login" element={<Login />} />
           <Route path="/agente/:id" element={<AgentDetailWrapper />} />
-          <Route path="/workspace" element={<Workspace />} />
-                  <Route path="/chat" element={<Chat />} />
-        <Route path="/invite-users" element={<InviteUsers />} />
+
         <Route path="/accept-invite" element={<AcceptInvite />} />
           <Route path="/historico" element={<HistoryPage />} />
           <Route path="/comunidade" element={<Comunidade />} />
