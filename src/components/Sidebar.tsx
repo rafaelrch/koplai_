@@ -15,9 +15,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
 
   // Estado para usuário logado
   const [user, setUser] = useState<any>(null);
-  const [company, setCompany] = useState<any>(null);
-  const [isCompanyOwner, setIsCompanyOwner] = useState(false);
-  const [userRole, setUserRole] = useState<string>('');
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -36,47 +33,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         setUser(user);
-
-        if (user) {
-          // Buscar dados da empresa do usuário
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('company_id, is_company_owner')
-            .eq('id', user.id)
-            .single();
-
-          if (profile?.company_id) {
-            setIsCompanyOwner(profile.is_company_owner || false);
-            
-            const { data: companyData } = await supabase
-              .from('companies')
-              .select('*')
-              .eq('id', profile.company_id)
-              .single();
-            
-            setCompany(companyData);
-
-            // Buscar cargo do usuário na empresa
-            const { data: companyUser } = await supabase
-              .from('company_users')
-              .select('role, position')
-              .eq('company_id', profile.company_id)
-              .eq('user_id', user.id)
-              .single();
-
-            if (companyUser) {
-              let roleText = '';
-              if (companyUser.role === 'employee') {
-                roleText = companyUser.position || 'Funcionário';
-              } else if (companyUser.role === 'manager') {
-                roleText = companyUser.position || 'Gerente';
-              } else if (companyUser.role === 'admin') {
-                roleText = companyUser.position || 'Administrador';
-              }
-              setUserRole(roleText);
-            }
-          }
-        }
       } catch (error) {
         console.error('Erro ao carregar dados do usuário:', error);
       } finally {

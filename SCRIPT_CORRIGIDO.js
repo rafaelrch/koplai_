@@ -2,7 +2,6 @@
 // IMPORTANTE: Substitua 'YOUR_SPREADSHEET_ID' pelo ID da sua planilha
 
 function doPost(e) {
-  
   try {
     console.log('Recebendo requisição POST');
     console.log('Dados recebidos:', e.postData.contents);
@@ -11,7 +10,7 @@ function doPost(e) {
     const data = JSON.parse(e.postData.contents);
     
     // Abrir a planilha (substitua pelo ID da sua planilha)
-    const spreadsheet = SpreadsheetApp.openById('YOUR_SPREADSHEET_ID');
+    const spreadsheet = SpreadsheetApp.openById('1A0y8ue3Ms0kLFvpy22iCMYCK8MKuRnHJ5XlJdY6JU8Q');
     const sheet = spreadsheet.getActiveSheet();
     
     // Preparar os dados para inserção
@@ -55,8 +54,10 @@ function doPost(e) {
 
 // Função para configurar CORS (necessária para requisições do frontend)
 function doGet(e) {
-  
   try {
+    console.log('Recebendo requisição GET');
+    console.log('Parâmetros:', e.parameter);
+    
     // Se há parâmetros, processar como feedback
     if (e.parameter.email) {
       const data = {
@@ -66,8 +67,10 @@ function doGet(e) {
         data: e.parameter.data
       };
       
+      console.log('Dados recebidos via GET:', data);
+      
       // Abrir a planilha (substitua pelo ID da sua planilha)
-      const spreadsheet = SpreadsheetApp.openById('YOUR_SPREADSHEET_ID');
+      const spreadsheet = SpreadsheetApp.openById('1A0y8ue3Ms0kLFvpy22iCMYCK8MKuRnHJ5XlJdY6JU8Q');
       const sheet = spreadsheet.getActiveSheet();
       
       // Preparar os dados para inserção
@@ -84,6 +87,8 @@ function doGet(e) {
       // Inserir na próxima linha disponível
       sheet.appendRow(rowData);
       
+      console.log('Dados inseridos com sucesso via GET');
+      
       return ContentService
         .createTextOutput(JSON.stringify({ 
           success: true, 
@@ -94,6 +99,7 @@ function doGet(e) {
     }
     
     // Se não há parâmetros, retornar OK
+    console.log('Nenhum parâmetro recebido, retornando OK');
     return ContentService
       .createTextOutput('OK')
       .setMimeType(ContentService.MimeType.TEXT);
@@ -113,14 +119,7 @@ function doGet(e) {
 
 // Função para configurar cabeçalhos CORS
 function doOptions(e) {
-  const headers = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type'
-  };
-  
   return ContentService
     .createTextOutput('')
-    .setMimeType(ContentService.MimeType.TEXT)
-    .setHeaders(headers);
+    .setMimeType(ContentService.MimeType.TEXT);
 } 

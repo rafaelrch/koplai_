@@ -18,8 +18,25 @@ export const AgentsPage: React.FC = () => {
 
   useEffect(() => {
     async function fetchAgents() {
-      const { data, error } = await supabase.from('agents').select('*');
-      if (data) setAgents(data);
+      try {
+        console.log('Buscando agentes...');
+        
+        // Verificar se o usuário está autenticado
+        const { data: { user } } = await supabase.auth.getUser();
+        console.log('Usuário autenticado:', user);
+        
+        const { data, error } = await supabase.from('agents').select('*');
+        
+        if (error) {
+          console.error('Erro ao buscar agentes:', error);
+          return;
+        }
+        
+        console.log('Agentes encontrados:', data);
+        if (data) setAgents(data);
+      } catch (err) {
+        console.error('Erro inesperado ao buscar agentes:', err);
+      }
     }
     fetchAgents();
   }, []);

@@ -25,15 +25,14 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#f8fafc] to-white py-8 px-2">
-      <div className="w-full max-w-[400px] bg-white rounded-2xl shadow-lg p-10 flex flex-col">
+      <div className="w-full max-w-[400px] bg-white rounded-2xl border border-[#e2e8f0] p-10 flex flex-col">
         {/* Logo */}
         <div className="flex flex-col items-center mb-8">
-          <svg width={48} height={48} viewBox="0 0 48 48" className="mb-6" aria-label="Coroa" fill="none">
-            <path d="M8 36L24 12L40 36" stroke="#3b82f6" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
-            <circle cx="24" cy="12" r="3" fill="#3b82f6"/>
-            <circle cx="8" cy="36" r="3" fill="#3b82f6"/>
-            <circle cx="40" cy="36" r="3" fill="#3b82f6"/>
-          </svg>
+          <img
+            src="/koplai_logo.svg"
+            alt="Logo Koplai"
+            className="w-44 h-44 mb-6 object-contain"
+          />
           <h1 className="text-[28px] font-semibold text-[#2d3748] mb-2 font-sans">Faça seu login!</h1>
         </div>
 
@@ -49,7 +48,7 @@ export default function Login() {
           <input
             type="email"
             placeholder="Email"
-            className="w-full bg-[#f8fafc] border border-[#e2e8f0] rounded-lg px-4 py-3 text-[14px] placeholder-[#94a3b8] focus:border-[#3b82f6] focus:ring-2 focus:ring-[#3b82f6]/20 outline-none transition"
+            className=" text-black w-full bg-[#f8fafc] border border-[#e2e8f0] rounded-lg px-4 py-3 text-[14px] placeholder-[#94a3b8] focus:border-[#3b82f6] focus:ring-2 focus:ring-[#3b82f6]/20 outline-none transition"
             value={form.email}
             onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
             required
@@ -58,7 +57,7 @@ export default function Login() {
           <input
             type="password"
             placeholder="Senha"
-            className="w-full bg-[#f8fafc] border border-[#e2e8f0] rounded-lg px-4 py-3 text-[14px] placeholder-[#94a3b8] focus:border-[#3b82f6] focus:ring-2 focus:ring-[#3b82f6]/20 outline-none transition"
+            className="text-black w-full bg-[#f8fafc] border border-[#e2e8f0] rounded-lg px-4 py-3 text-[14px] placeholder-[#94a3b8] focus:border-[#3b82f6] focus:ring-2 focus:ring-[#3b82f6]/20 outline-none transition"
             value={form.senha}
             onChange={e => setForm(f => ({ ...f, senha: e.target.value }))}
             required

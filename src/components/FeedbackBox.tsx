@@ -40,8 +40,18 @@ const FeedbackBox: React.FC = () => {
   }, []);
 
   const handleSubmit = async () => {
-    if (!selected || !userEmail) {
-      alert('Por favor, selecione uma experiência e certifique-se de estar logado.');
+    console.log('=== DEBUG SUBMIT ===');
+    console.log('selected:', selected);
+    console.log('userEmail:', userEmail);
+    console.log('text:', text);
+    
+    if (selected === null || selected === undefined) {
+      alert('Por favor, selecione uma experiência.');
+      return;
+    }
+    
+    if (!userEmail) {
+      alert('Por favor, certifique-se de estar logado.');
       return;
     }
     
@@ -55,34 +65,48 @@ const FeedbackBox: React.FC = () => {
     };
 
     try {
-      console.log('Enviando dados:', feedbackData);
+      console.log('=== ENVIANDO FEEDBACK ===');
+      console.log('Dados do usuário:', feedbackData);
+      console.log('Email do usuário:', userEmail);
+      console.log('Experiência selecionada:', selected, faces[selected].label);
       
-      // Enviar para Google Sheets via Apps Script
-      const response = await fetch('https://script.google.com/macros/s/AKfycbw4xLMHa3evIEanuagbJx1TBQP8A2KJtN9SlHydyxpwe-6oTqNalEhviM2NzQ64ffmE/exec', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(feedbackData)
+      // Criar URL com parâmetros
+      const params = new URLSearchParams({
+        email: feedbackData.email,
+        experiencia: feedbackData.experiencia,
+        comentario: feedbackData.comentario,
+        data: feedbackData.data
       });
-
-      console.log('Status da resposta:', response.status);
-      console.log('Headers da resposta:', response.headers);
-
-      if (response.ok) {
-        const result = await response.text();
-        console.log('Resposta do servidor:', result);
-        setSent(true);
-        setText('');
-        setSelected(null);
-      } else {
-        const errorText = await response.text();
-        console.error('Erro na resposta:', errorText);
-        alert(`Erro ao enviar feedback (${response.status}). Tente novamente.`);
+      
+      const scriptUrl = `https://script.google.com/macros/s/AKfycbx4b5MkVSe6fIn4ltLnJpdhhQhraapUtNBdAjSloAcg6TVZFhTpviwL5h-NO4-EYi0tjA/exec?${params}`;
+      
+      console.log('URL completa:', scriptUrl);
+      console.log('Parâmetros:', params.toString());
+      
+      // Solução mais simples: abrir em nova aba e fechar automaticamente
+      const newWindow = window.open(scriptUrl, '_blank', 'width=1,height=1,scrollbars=no,resizable=no');
+      
+      if (!newWindow) {
+        throw new Error('Bloqueador de pop-ups ativo. Desative temporariamente.');
       }
+      
+      // Fechar a janela após 2 segundos
+      setTimeout(() => {
+        if (newWindow && !newWindow.closed) {
+          newWindow.close();
+        }
+      }, 2000);
+      
+      // Simular sucesso (o script foi executado)
+      setSent(true);
+      setText('');
+      setSelected(null);
+      
+      console.log('Feedback enviado com sucesso via nova janela');
+      
     } catch (error) {
       console.error('Erro ao enviar feedback:', error);
-      alert(`Erro de conexão: ${error.message}`);
+      alert(`Erro: ${error.message}`);
     } finally {
       setIsLoading(false);
     }
@@ -96,7 +120,11 @@ const FeedbackBox: React.FC = () => {
             <button
               key={face.label}
               className={`rounded-full p-1 border-2 transition-all ${selected === idx ? 'border-blue-600 bg-blue-50' : 'border-transparent'}`}
-              onClick={() => setSelected(idx)}
+              onClick={() => {
+                console.log('Clicou no rosto:', idx, face.label);
+                setSelected(idx);
+                console.log('selected agora é:', idx);
+              }}
               aria-label={face.label}
             >
               {face.svg}

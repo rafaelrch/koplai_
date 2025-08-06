@@ -18,7 +18,7 @@ import Imagem from "./pages/Imagem";
 import Configuracao from "./pages/Configuracao";
 import Landing from "./pages/Landing";
 
-import AcceptInvite from "./pages/AcceptInvite";
+
 
 // Wrapper para passar o id da URL como prop agentId
 const AgentDetailWrapper = () => {
@@ -41,7 +41,7 @@ const App = () => (
           <Route path="/login" element={<Login />} />
           <Route path="/agente/:id" element={<AgentDetailWrapper />} />
 
-        <Route path="/accept-invite" element={<AcceptInvite />} />
+
           <Route path="/historico" element={<HistoryPage />} />
           <Route path="/comunidade" element={<Comunidade />} />
           <Route path="/sugestoes" element={<Sugestoes />} />
