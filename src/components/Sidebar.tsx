@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Settings, BarChart3, Bot, Users, Lightbulb, Video, Image, History, MessageCircle, LogOut } from 'lucide-react';
+import { Settings, BarChart3, Bot, Users, Lightbulb, Video, Image, History, MessageCircle, LogOut, Trello } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import ReactDOM from 'react-dom';
 import { Link, useLocation } from 'react-router-dom';
@@ -23,6 +23,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
     { name: 'Histórico', icon: History, path: '/historico' },
     { name: 'Comunidade', icon: Users, path: '/comunidade' },
     { name: 'Sugestões', icon: MessageCircle, path: '/sugestoes' },
+    { name: 'Kanban', icon: Trello, path: '/kanban' },
     { name: 'Vídeo', icon: Video, path: '/video', badge: 'Em breve' },
     { name: 'Imagem', icon: Image, path: '/imagem', badge: 'Em breve' },
     { name: 'Configuração', icon: Settings, path: '/configuracao' },

@@ -25,7 +25,10 @@ export const AgentsPage: React.FC = () => {
         const { data: { user } } = await supabase.auth.getUser();
         console.log('Usuário autenticado:', user);
         
-        const { data, error } = await supabase.from('agents').select('*');
+        const { data, error } = await supabase
+          .from('agents')
+          .select('*')
+          .order('created_at', { ascending: false });
         
         if (error) {
           console.error('Erro ao buscar agentes:', error);

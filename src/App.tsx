@@ -17,6 +17,7 @@ import Video from "./pages/Video";
 import Imagem from "./pages/Imagem";
 import Configuracao from "./pages/Configuracao";
 import Landing from "./pages/Landing";
+import Kanban from "./pages/Kanban";
 
 
 
@@ -45,6 +46,7 @@ const App = () => (
           <Route path="/historico" element={<HistoryPage />} />
           <Route path="/comunidade" element={<Comunidade />} />
           <Route path="/sugestoes" element={<Sugestoes />} />
+          <Route path="/kanban" element={<Kanban />} />
           <Route path="/video" element={<Video />} />
           <Route path="/imagem" element={<Imagem />} />
           <Route path="/configuracao" element={<Configuracao />} />
