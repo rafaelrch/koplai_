@@ -35,7 +35,7 @@ export default function Footer() {
               className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-[#000622] hover-bg[#00105c] border border-[#3c3c3c] transition-all duration-200"
             >
               <Instagram className="w-5 h-5 text-white" />
-            </a>
+            </    a>
           </div>
 
           {/* Right side - Contact and navigation */}
