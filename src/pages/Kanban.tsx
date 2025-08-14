@@ -52,6 +52,8 @@ interface Column {
 
 
 
+
+
 // Componente de Card de Tarefa
 const TaskCard = ({ task, onEdit, onUpdate, onDelete }: { 
   task: Task; 
@@ -95,7 +97,6 @@ const TaskCard = ({ task, onEdit, onUpdate, onDelete }: {
         cursor-grab active:cursor-grabbing
         hover:shadow-md hover:border-indigo-300 
         transition-all duration-300 ease-in-out
-        relative overflow-visible
         ${isDragging ? 'opacity-60 shadow-xl scale-105 z-50' : ''}
         ${isOver && !isDragging ? 'border-indigo-400 bg-indigo-50 shadow-md' : ''}
       `}
@@ -114,13 +115,14 @@ const TaskCard = ({ task, onEdit, onUpdate, onDelete }: {
             </div>
           )}
         </div>
-        <div className="flex items-center gap-1 ml-2 relative z-50 pointer-events-auto">
+        <div className="flex items-center gap-1 ml-2">
           <button
             onClick={(e) => {
               e.stopPropagation();
+              e.preventDefault();
               onEdit(task);
             }}
-            className="p-1.5 hover:bg-indigo-100 rounded transition-colors relative z-50 cursor-pointer pointer-events-auto"
+            className="p-1.5 hover:bg-indigo-100 rounded transition-colors cursor-pointer"
             title="Editar tarefa"
           >
             <Edit3 className="w-3.5 h-3.5 text-indigo-500" />
@@ -128,9 +130,10 @@ const TaskCard = ({ task, onEdit, onUpdate, onDelete }: {
           <button
             onClick={(e) => {
               e.stopPropagation();
+              e.preventDefault();
               onDelete(task.id);
             }}
-            className="p-1.5 hover:bg-red-100 rounded transition-colors relative z-50 cursor-pointer pointer-events-auto"
+            className="p-1.5 hover:bg-red-100 rounded transition-colors cursor-pointer"
             title="Excluir tarefa"
           >
             <Trash2 className="w-3.5 h-3.5 text-red-500" />
