@@ -765,6 +765,7 @@ export default function Kanban() {
   const [columnModal, setColumnModal] = useState<{ isOpen: boolean; column?: Column }>({ isOpen: false });
   const [activeTask, setActiveTask] = useState<Task | null>(null);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'daily' | 'approval'>('daily');
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -1106,6 +1107,7 @@ export default function Kanban() {
       {/* Main Content */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden flex flex-col items-center justify-start py-2 px-4 sm:px-20 lg:ml-[260px] w-full max-w-full">
         {/* Mobile header */}
+        
         <div className="lg:hidden bg-white border-b border-gray-100 px-4 py-3 sticky top-0 z-30 w-full max-w-6xl mx-auto rounded-t-2xl">
           <div className="flex items-center justify-between">
             <button
@@ -1137,6 +1139,7 @@ export default function Kanban() {
           {/* Header */}
           {!loading && (
             <>
+            
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
                 <h1 className="text-3xl font-bold text-gray-900">Kanban</h1>
                 
@@ -1165,6 +1168,33 @@ export default function Kanban() {
                   </div>
                 </div>
               </div>
+
+              {/* Switch Button */}
+              <div className="mb-6">
+                <div className="inline-flex bg-gray-100 rounded-lg p-2 shadow-sm">
+                  <button
+                    onClick={() => setActiveTab('daily')}
+                    className={`px-10 py-0.5 rounded-md text-sm font-medium transition-all duration-200 ${
+                      activeTab === 'daily'
+                        ? 'bg-white text-gray-900 shadow-[0_0_20px_rgba(0,0,0,0.08)] '
+                        : 'text-gray-600 hover:text-gray-800'
+                    }`}
+                  >
+                    Tarefas do dia
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('approval')}
+                    className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+                      activeTab === 'approval'
+                        ? 'bg-white text-gray-900 shadow-[0_0_20px_rgba(0,0,0,0.08)]'
+                        : 'text-gray-600 hover:text-gray-800'
+                    }`}
+                  >
+                    Aprovação interna
+                  </button>
+                </div>
+              </div>
+              
 
               {/* Kanban Board */}
               <DndContext
