@@ -18,6 +18,7 @@ import Imagem from "./pages/Imagem";
 import Configuracao from "./pages/Configuracao";
 import Landing from "./pages/Landing";
 import Kanban from "./pages/Kanban";
+import { useTheme } from "./hooks/use-theme";
 
 
 
@@ -27,6 +28,33 @@ const AgentDetailWrapper = () => {
   return <AgentDetailPage agentId={id} onBack={() => window.history.back()} />;
 };
 
+// Wrapper para gerenciar o tema e favicon
+const AppWrapper = () => {
+  useTheme(); // This will handle favicon switching based on theme
+  
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<AgentsPage />} />
+        <Route path="/agentes" element={<AgentsPage />} />
+        <Route path="/cadastro" element={<Cadastro />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/agente/:id" element={<AgentDetailWrapper />} />
+        <Route path="/historico" element={<HistoryPage />} />
+        <Route path="/comunidade" element={<Comunidade />} />
+        <Route path="/sugestoes" element={<Sugestoes />} />
+        <Route path="/kanban" element={<Kanban />} />
+        <Route path="/video" element={<Video />} />
+        <Route path="/imagem" element={<Imagem />} />
+        <Route path="/configuracao" element={<Configuracao />} />
+        <Route path="/landing" element={<Landing />} />
+        {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </BrowserRouter>
+  );
+};
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -34,27 +62,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<AgentsPage />} />
-          <Route path="/agentes" element={<AgentsPage />} />
-          <Route path="/cadastro" element={<Cadastro />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/agente/:id" element={<AgentDetailWrapper />} />
-
-
-          <Route path="/historico" element={<HistoryPage />} />
-          <Route path="/comunidade" element={<Comunidade />} />
-          <Route path="/sugestoes" element={<Sugestoes />} />
-          <Route path="/kanban" element={<Kanban />} />
-          <Route path="/video" element={<Video />} />
-          <Route path="/imagem" element={<Imagem />} />
-          <Route path="/configuracao" element={<Configuracao />} />
-          <Route path="/landing" element={<Landing />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
+      <AppWrapper />
     </TooltipProvider>
   </QueryClientProvider>
 );
