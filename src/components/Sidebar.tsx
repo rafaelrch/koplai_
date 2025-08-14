@@ -20,10 +20,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
 
   const menuItems = [
     { name: 'Agentes', icon: Bot, path: '/agentes' },
+    { name: 'Kanban', icon: Trello, path: '/kanban' },
     { name: 'Histórico', icon: History, path: '/historico' },
     { name: 'Comunidade', icon: Users, path: '/comunidade' },
     { name: 'Sugestões', icon: MessageCircle, path: '/sugestoes' },
-    { name: 'Kanban', icon: Trello, path: '/kanban' },
     { name: 'Vídeo', icon: Video, path: '/video', badge: 'Em breve' },
     { name: 'Imagem', icon: Image, path: '/imagem', badge: 'Em breve' },
     { name: 'Configuração', icon: Settings, path: '/configuracao' },

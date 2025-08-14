@@ -3,6 +3,7 @@ import { Sidebar } from '../components/Sidebar';
 import { Menu, Search, Plus, X, Edit3, Trash2, Link as LinkIcon, Image as ImageIcon, Video, FileText, MoreHorizontal } from 'lucide-react';
 import { useIsMobile } from '../hooks/use-mobile';
 import { toast } from "../components/ui/sonner";
+import { kanbanService, columnService, taskService, KanbanColumn as DBColumn, KanbanTask as DBTask } from '../lib/kanbanService';
 import {
   DndContext,
   closestCenter,
@@ -38,6 +39,7 @@ interface Task {
   }[];
   createdAt: Date;
   columnId: string;
+  position: number;
 }
 
 interface Column {
@@ -45,329 +47,10 @@ interface Column {
   title: string;
   color: string;
   tasks: Task[];
+  position: number;
 }
 
-// Modal de Detalhes da Tarefa
-const TaskDetailModal = ({ 
-  task, 
-  onClose, 
-  onEdit, 
-  onDelete 
-}: {
-  task: Task;
-  onClose: () => void;
-  onEdit: (task: Task) => void;
-  onDelete: (taskId: string) => void;
-}) => {
-  const [isEditing, setIsEditing] = useState(false);
-  const [editedTask, setEditedTask] = useState<Task>(task);
-  const [newLink, setNewLink] = useState('');
-  const [newFiles, setNewFiles] = useState<File[]>([]);
 
-  // Atualizar editedTask quando task mudar
-  useEffect(() => {
-    setEditedTask(task);
-  }, [task]);
-
-  const handleSave = () => {
-    // Processar novos anexos
-    const processedAttachments = [...editedTask.attachments];
-    
-    if (newLink.trim()) {
-      processedAttachments.push({
-        type: 'link',
-        url: newLink.trim()
-      });
-    }
-    
-    newFiles.forEach(file => {
-      const fileType = file.type.startsWith('image/') ? 'image' : 
-                      file.type.startsWith('video/') ? 'video' : 'link';
-      
-      processedAttachments.push({
-        type: fileType as 'link' | 'image' | 'video',
-        url: URL.createObjectURL(file),
-        preview: file.name
-      });
-    });
-
-    const updatedTask = {
-      ...editedTask,
-      attachments: processedAttachments
-    };
-
-    onEdit(updatedTask);
-    setIsEditing(false);
-    setNewLink('');
-    setNewFiles([]);
-  };
-
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.target.files || []);
-    const maxFiles = 5;
-    
-    if (editedTask.attachments.length + newFiles.length + files.length > maxFiles) {
-      alert(`Você pode ter no máximo ${maxFiles} anexos.`);
-      return;
-    }
-    
-    const validFiles = files.filter(file => {
-      const isValid = file.type.startsWith('image/') || file.type.startsWith('video/');
-      if (!isValid) {
-        alert(`Arquivo "${file.name}" não é uma imagem ou vídeo válido.`);
-      }
-      return isValid;
-    });
-    
-    setNewFiles(prev => [...prev, ...validFiles]);
-  };
-
-  const removeAttachment = (index: number) => {
-    setEditedTask(prev => ({
-      ...prev,
-      attachments: prev.attachments.filter((_, i) => i !== index)
-    }));
-  };
-
-  const removeNewFile = (index: number) => {
-    setNewFiles(prev => prev.filter((_, i) => i !== index));
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">
-            {isEditing ? 'Editar Tarefa' : 'Detalhes da Tarefa'}
-          </h2>
-          <div className="flex items-center gap-2">
-            {!isEditing && (
-              <>
-                <button
-                  onClick={() => setIsEditing(true)}
-                  className="flex items-center gap-2 px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm"
-                >
-                  <Edit3 className="w-4 h-4" />
-                  Editar
-                </button>
-                <button
-                  onClick={() => onDelete(task.id)}
-                  className="flex items-center gap-2 px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  Excluir
-                </button>
-              </>
-            )}
-            <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded">
-              <X className="w-5 h-5 text-gray-500" />
-            </button>
-          </div>
-        </div>
-
-        <div className="space-y-6">
-          {/* Título */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Título
-            </label>
-            {isEditing ? (
-              <input
-                type="text"
-                value={editedTask.title}
-                onChange={(e) => setEditedTask(prev => ({ ...prev, title: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-black"
-              />
-            ) : (
-              <h3 className="text-lg font-semibold text-gray-900">{task.title}</h3>
-            )}
-          </div>
-
-          {/* Descrição */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Descrição
-            </label>
-            {isEditing ? (
-              <textarea
-                value={editedTask.description}
-                onChange={(e) => setEditedTask(prev => ({ ...prev, description: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none text-black"
-                rows={4}
-              />
-            ) : (
-              <p className="text-gray-700 whitespace-pre-wrap">{task.description || 'Sem descrição'}</p>
-            )}
-          </div>
-
-          {/* Data de Criação */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Criado em
-            </label>
-            <p className="text-gray-600">
-              {new Date(task.createdAt).toLocaleString('pt-BR')}
-            </p>
-          </div>
-
-          {/* Anexos Existentes */}
-          {task.attachments.length > 0 && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Anexos ({task.attachments.length})
-              </label>
-              <div className="space-y-2">
-                {task.attachments.map((attachment, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      {attachment.type === 'link' && <LinkIcon className="w-5 h-5 text-green-500" />}
-                      {attachment.type === 'image' && <ImageIcon className="w-5 h-5 text-blue-500" />}
-                      {attachment.type === 'video' && <Video className="w-5 h-5 text-red-500" />}
-                      <div>
-                        <p className="font-medium text-gray-900">
-                          {attachment.type === 'link' ? 'Link' : attachment.preview || 'Anexo'}
-                        </p>
-                        {attachment.type === 'link' && (
-                          <a 
-                            href={attachment.url} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="text-sm text-indigo-600 hover:text-indigo-800 break-all"
-                          >
-                            {attachment.url}
-                          </a>
-                        )}
-                      </div>
-                    </div>
-                    {isEditing && (
-                      <button
-                        onClick={() => removeAttachment(index)}
-                        className="p-1 hover:bg-red-100 rounded text-red-500"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Adicionar Novos Anexos (apenas em modo de edição) */}
-          {isEditing && (
-            <div className="space-y-4">
-              {/* Novo Link */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Adicionar Link
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="url"
-                    value={newLink}
-                    onChange={(e) => setNewLink(e.target.value)}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-black"
-                    placeholder="https://exemplo.com"
-                  />
-                  <button
-                    onClick={() => setNewLink('')}
-                    className="px-3 py-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Novos Arquivos */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Adicionar Arquivos
-                </label>
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-indigo-400 transition-colors">
-                  <input
-                    type="file"
-                    multiple
-                    accept="image/*,video/*"
-                    onChange={handleFileSelect}
-                    className="hidden"
-                    id="detail-file-upload"
-                  />
-                  <label htmlFor="detail-file-upload" className="cursor-pointer">
-                    <div className="flex flex-col items-center gap-2">
-                      <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
-                        <Plus className="w-4 h-4 text-gray-500" />
-                      </div>
-                      <div>
-                        <span className="text-sm font-medium text-indigo-600 hover:text-indigo-500">
-                          Clique para selecionar
-                        </span>
-                        <p className="text-xs text-gray-500">Fotos e vídeos</p>
-                      </div>
-                    </div>
-                  </label>
-                </div>
-              </div>
-
-              {/* Lista de Novos Arquivos */}
-              {newFiles.length > 0 && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Novos Arquivos
-                  </label>
-                  <div className="space-y-2">
-                    {newFiles.map((file, index) => (
-                      <div key={index} className="flex items-center justify-between p-2 bg-blue-50 rounded-lg">
-                        <div className="flex items-center gap-2">
-                          {file.type.startsWith('image/') ? (
-                            <ImageIcon className="w-4 h-4 text-blue-500" />
-                          ) : file.type.startsWith('video/') ? (
-                            <Video className="w-4 h-4 text-red-500" />
-                          ) : (
-                            <FileText className="w-4 h-4 text-gray-500" />
-                          )}
-                          <span className="text-sm text-gray-700 truncate">{file.name}</span>
-                        </div>
-                        <button
-                          onClick={() => removeNewFile(index)}
-                          className="p-1 hover:bg-red-100 rounded text-red-500"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Botões de Ação */}
-          {isEditing && (
-            <div className="flex gap-3 pt-4">
-              <button
-                onClick={handleSave}
-                className="flex-1 bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 transition-colors"
-              >
-                Salvar Alterações
-              </button>
-              <button
-                onClick={() => {
-                  setIsEditing(false);
-                  setEditedTask(task);
-                  setNewLink('');
-                  setNewFiles([]);
-                }}
-                className="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors"
-              >
-                Cancelar
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-};
 
 // Componente de Card de Tarefa
 const TaskCard = ({ task, onEdit, onUpdate, onDelete }: { 
@@ -378,7 +61,6 @@ const TaskCard = ({ task, onEdit, onUpdate, onDelete }: {
 }) => {
   const [showAttachmentModal, setShowAttachmentModal] = useState(false);
   const [selectedAttachment, setSelectedAttachment] = useState<any>(null);
-  const [showDetailModal, setShowDetailModal] = useState(false);
   const {
     attributes,
     listeners,
@@ -413,23 +95,11 @@ const TaskCard = ({ task, onEdit, onUpdate, onDelete }: {
         cursor-grab active:cursor-grabbing
         hover:shadow-md hover:border-indigo-300 
         transition-all duration-300 ease-in-out
+        relative overflow-visible
         ${isDragging ? 'opacity-60 shadow-xl scale-105 z-50' : ''}
         ${isOver && !isDragging ? 'border-indigo-400 bg-indigo-50 shadow-md' : ''}
       `}
-      onClick={(e) => {
-        // Não abrir modal se estiver arrastando
-        if (isDragging) {
-          return;
-        }
-        
-        // Não abrir modal se clicou em um botão
-        const target = e.target as HTMLElement;
-        if (target.closest('button')) {
-          return;
-        }
-        
-        setShowDetailModal(true);
-      }}
+
     >
       <div className="flex items-start justify-between mb-2">
         <div className="flex-1 min-w-0">
@@ -444,36 +114,26 @@ const TaskCard = ({ task, onEdit, onUpdate, onDelete }: {
             </div>
           )}
         </div>
-        <div className="flex items-center gap-1 ml-2">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowDetailModal(true);
-            }}
-            className="p-1 hover:bg-indigo-100 rounded transition-colors"
-            title="Ver detalhes"
-          >
-            <MoreHorizontal className="w-3 h-3 text-indigo-400" />
-          </button>
+        <div className="flex items-center gap-1 ml-2 relative z-50 pointer-events-auto">
           <button
             onClick={(e) => {
               e.stopPropagation();
               onEdit(task);
             }}
-            className="p-1 hover:bg-gray-100 rounded transition-colors"
-            title="Editar"
+            className="p-1.5 hover:bg-indigo-100 rounded transition-colors relative z-50 cursor-pointer pointer-events-auto"
+            title="Editar tarefa"
           >
-            <Edit3 className="w-3 h-3 text-gray-400" />
+            <Edit3 className="w-3.5 h-3.5 text-indigo-500" />
           </button>
           <button
             onClick={(e) => {
               e.stopPropagation();
               onDelete(task.id);
             }}
-            className="p-1 hover:bg-red-100 rounded transition-colors"
-            title="Excluir"
+            className="p-1.5 hover:bg-red-100 rounded transition-colors relative z-50 cursor-pointer pointer-events-auto"
+            title="Excluir tarefa"
           >
-            <Trash2 className="w-3 h-3 text-red-400" />
+            <Trash2 className="w-3.5 h-3.5 text-red-500" />
           </button>
         </div>
       </div>
@@ -580,15 +240,7 @@ const TaskCard = ({ task, onEdit, onUpdate, onDelete }: {
         </div>
       )}
 
-      {/* Modal de Detalhes da Tarefa */}
-      {showDetailModal && (
-        <TaskDetailModal
-          task={task}
-          onClose={() => setShowDetailModal(false)}
-          onEdit={onUpdate}
-          onDelete={onDelete}
-        />
-      )}
+
 
       <div className="text-xs text-gray-400">
         {new Date(task.createdAt).toLocaleDateString()}
@@ -622,7 +274,7 @@ const Column = ({
   return (
     <div 
       ref={setNodeRef}
-      className={`bg-gray-50 rounded-lg p-3 min-w-[280px] max-w-[280px] h-fit border transition-all duration-300 ease-in-out ${
+      className={`bg-gray-50 rounded-lg p-3 min-w-[280px] max-w-[280px] h-fit border transition-all duration-300 ease-in-out overflow-visible ${
         isOver 
           ? 'border-[#8fb7ff] bg-[#cee0ff]/20' 
           : 'border-transparent hover:border-gray-200'
@@ -710,6 +362,23 @@ const TaskModal = ({
   const [link, setLink] = useState('');
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
 
+  // Atualizar campos quando task mudar ou modal abrir
+  useEffect(() => {
+    if (task) {
+      // Editar tarefa existente
+      setTitle(task.title);
+      setDescription(task.description);
+      setAttachments(task.attachments);
+    } else {
+      // Nova tarefa - limpar todos os campos
+      setTitle('');
+      setDescription('');
+      setAttachments([]);
+    }
+    setLink('');
+    setSelectedFiles([]);
+  }, [task, isOpen]);
+
   const handleSave = () => {
     if (!title.trim()) {
       alert('Por favor, insira um título para a tarefa.');
@@ -750,6 +419,7 @@ const TaskModal = ({
       description: description.trim(),
       attachments: processedAttachments,
       columnId: finalColumnId,
+      position: 0,
     });
     onClose();
   };
@@ -983,6 +653,7 @@ const ColumnModal = ({
     onSave({
       title: title.trim(),
       color,
+      position: 0,
     });
     onClose();
   };
@@ -1060,24 +731,28 @@ export default function Kanban() {
       id: '1',
       title: 'A Fazer',
       color: '#3B82F6',
+      position: 0,
       tasks: []
     },
     {
       id: '2',
       title: 'Em Progresso',
       color: '#F59E0B',
+      position: 1,
       tasks: []
     },
     {
       id: '3',
       title: 'Aprovado',
       color: '#10B981',
+      position: 2,
       tasks: []
     },
     {
       id: '4',
       title: 'Reprovado',
       color: '#EF4444',
+      position: 3,
       tasks: []
     }
   ]);
@@ -1086,6 +761,7 @@ export default function Kanban() {
   const [taskModal, setTaskModal] = useState<{ isOpen: boolean; task?: Task }>({ isOpen: false });
   const [columnModal, setColumnModal] = useState<{ isOpen: boolean; column?: Column }>({ isOpen: false });
   const [activeTask, setActiveTask] = useState<Task | null>(null);
+  const [loading, setLoading] = useState(true);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -1093,6 +769,47 @@ export default function Kanban() {
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
+
+  // Carregar dados do banco de dados
+  const loadDataFromDB = async () => {
+    try {
+      setLoading(true);
+      await kanbanService.initializeDefaultData();
+      const { columns: dbColumns, tasks: dbTasks } = await kanbanService.loadKanban();
+      
+      // Converter dados do banco para o formato do componente
+      const convertedColumns: Column[] = dbColumns.map(dbCol => ({
+        id: dbCol.id,
+        title: dbCol.title,
+        color: dbCol.color,
+        position: dbCol.position,
+        tasks: dbTasks
+          .filter(dbTask => dbTask.column_id === dbCol.id)
+          .map(dbTask => ({
+            id: dbTask.id,
+            title: dbTask.title,
+            description: dbTask.description,
+            attachments: dbTask.attachments || [],
+            createdAt: new Date(dbTask.created_at),
+            columnId: dbTask.column_id,
+            position: dbTask.position
+          }))
+          .sort((a, b) => a.position - b.position)
+      })).sort((a, b) => a.position - b.position);
+
+      setColumns(convertedColumns);
+    } catch (error) {
+      console.error('Erro ao carregar dados:', error);
+      toast.error('Erro ao carregar dados do banco');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Carregar dados na inicialização
+  useEffect(() => {
+    loadDataFromDB();
+  }, []);
 
   const handleDragStart = (event: DragStartEvent) => {
     setActiveTask(columns.flatMap(col => col.tasks).find(task => task.id === event.active.id) || null);
@@ -1202,26 +919,61 @@ export default function Kanban() {
     });
   };
 
-  const addColumn = (columnData: Omit<Column, 'id' | 'tasks'>) => {
-    const newColumn: Column = {
-      id: Date.now().toString(),
-      ...columnData,
-      tasks: []
-    };
-    setColumns([...columns, newColumn]);
+  const addColumn = async (columnData: Omit<Column, 'id' | 'tasks'>) => {
+    try {
+      const newDBColumn = await columnService.create({
+        title: columnData.title,
+        color: columnData.color,
+        position: columns.length
+      });
+
+      const newColumn: Column = {
+        id: newDBColumn.id,
+        title: newDBColumn.title,
+        color: newDBColumn.color,
+        position: newDBColumn.position,
+        tasks: []
+      };
+
+      setColumns([...columns, newColumn]);
+      toast.success('Coluna criada com sucesso!');
+    } catch (error) {
+      console.error('Erro ao criar coluna:', error);
+      toast.error('Erro ao criar coluna');
+    }
   };
 
-  const editColumn = (columnData: Omit<Column, 'id' | 'tasks'>) => {
+  const editColumn = async (columnData: Omit<Column, 'id' | 'tasks'>) => {
     if (!columnModal.column) return;
-    setColumns(columns.map(col => 
-      col.id === columnModal.column!.id 
-        ? { ...col, ...columnData }
-        : col
-    ));
+    
+    try {
+      await columnService.update(columnModal.column.id, {
+        title: columnData.title,
+        color: columnData.color,
+        position: columnData.position
+      });
+
+      setColumns(columns.map(col => 
+        col.id === columnModal.column!.id 
+          ? { ...col, ...columnData }
+          : col
+      ));
+      toast.success('Coluna atualizada com sucesso!');
+    } catch (error) {
+      console.error('Erro ao atualizar coluna:', error);
+      toast.error('Erro ao atualizar coluna');
+    }
   };
 
-  const deleteColumn = (columnId: string) => {
-    setColumns(columns.filter(col => col.id !== columnId));
+  const deleteColumn = async (columnId: string) => {
+    try {
+      await columnService.delete(columnId);
+      setColumns(columns.filter(col => col.id !== columnId));
+      toast.success('Coluna deletada com sucesso!');
+    } catch (error) {
+      console.error('Erro ao deletar coluna:', error);
+      toast.error('Erro ao deletar coluna');
+    }
   };
 
   const addTaskToColumn = (columnId: string) => {
@@ -1236,32 +988,57 @@ export default function Kanban() {
     } as Task);
   };
 
-  const saveTask = (taskData: Omit<Task, 'id' | 'createdAt'>) => {
-    if (taskModal.task) {
-      // Editar tarefa existente
-      setColumns(columns.map(col => ({
-        ...col,
-        tasks: col.tasks.map(task => 
-          task.id === taskModal.task!.id 
-            ? { ...task, ...taskData }
-            : task
-        )
-      })));
-    } else {
-      // Nova tarefa
-      const newTask: Task = {
-        id: Date.now().toString(),
-        ...taskData,
-        createdAt: new Date()
-      };
-      
+  const saveTask = async (taskData: Omit<Task, 'id' | 'createdAt'>) => {
+    try {
+      if (taskModal.task) {
+        // Editar tarefa existente
+        await taskService.update(taskModal.task.id, {
+          title: taskData.title,
+          description: taskData.description,
+          column_id: taskData.columnId,
+          position: taskData.position,
+          attachments: taskData.attachments
+        });
 
-      
-      setColumns(columns.map(col => 
-        col.id === taskData.columnId 
-          ? { ...col, tasks: [...col.tasks, newTask] }
-          : col
-      ));
+        setColumns(columns.map(col => ({
+          ...col,
+          tasks: col.tasks.map(task => 
+            task.id === taskModal.task!.id 
+              ? { ...task, ...taskData }
+              : task
+          )
+        })));
+        toast.success('Tarefa atualizada com sucesso!');
+      } else {
+        // Nova tarefa
+        const newDBTask = await taskService.create({
+          title: taskData.title,
+          description: taskData.description,
+          column_id: taskData.columnId,
+          position: taskData.position,
+          attachments: taskData.attachments
+        });
+
+        const newTask: Task = {
+          id: newDBTask.id,
+          title: newDBTask.title,
+          description: newDBTask.description,
+          attachments: newDBTask.attachments || [],
+          createdAt: new Date(newDBTask.created_at),
+          columnId: newDBTask.column_id,
+          position: newDBTask.position
+        };
+        
+        setColumns(columns.map(col => 
+          col.id === taskData.columnId 
+            ? { ...col, tasks: [...col.tasks, newTask] }
+            : col
+        ));
+        toast.success('Tarefa criada com sucesso!');
+      }
+    } catch (error) {
+      console.error('Erro ao salvar tarefa:', error);
+      toast.error('Erro ao salvar tarefa');
     }
   };
 
@@ -1269,24 +1046,45 @@ export default function Kanban() {
     setTaskModal({ isOpen: true, task });
   };
 
-  const updateTask = (updatedTask: Task) => {
-    setColumns(prevColumns => {
-      return prevColumns.map(col => ({
-        ...col,
-        tasks: col.tasks.map(task => 
-          task.id === updatedTask.id 
-            ? { ...task, ...updatedTask }
-            : task
-        )
-      }));
-    });
+  const updateTask = async (updatedTask: Task) => {
+    try {
+      await taskService.update(updatedTask.id, {
+        title: updatedTask.title,
+        description: updatedTask.description,
+        column_id: updatedTask.columnId,
+        position: updatedTask.position,
+        attachments: updatedTask.attachments
+      });
+
+      setColumns(prevColumns => {
+        return prevColumns.map(col => ({
+          ...col,
+          tasks: col.tasks.map(task => 
+            task.id === updatedTask.id 
+              ? { ...task, ...updatedTask }
+              : task
+          )
+        }));
+      });
+      toast.success('Tarefa atualizada com sucesso!');
+    } catch (error) {
+      console.error('Erro ao atualizar tarefa:', error);
+      toast.error('Erro ao atualizar tarefa');
+    }
   };
 
-  const deleteTask = (taskId: string) => {
-    setColumns(columns.map(col => ({
-      ...col,
-      tasks: col.tasks.filter(task => task.id !== taskId)
-    })));
+  const deleteTask = async (taskId: string) => {
+    try {
+      await taskService.delete(taskId);
+      setColumns(columns.map(col => ({
+        ...col,
+        tasks: col.tasks.filter(task => task.id !== taskId)
+      })));
+      toast.success('Tarefa deletada com sucesso!');
+    } catch (error) {
+      console.error('Erro ao deletar tarefa:', error);
+      toast.error('Erro ao deletar tarefa');
+    }
   };
 
   const filteredColumns = columns.map(col => ({
@@ -1325,72 +1123,84 @@ export default function Kanban() {
 
         {/* Container central branco */}
         <div className="w-full max-w-full bg-white rounded-2xl p-6 sm:p-10 m-10">
+          {/* Loading */}
+          {loading && (
+            <div className="flex items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+              <span className="ml-3 text-gray-600">Carregando dados...</span>
+            </div>
+          )}
+
           {/* Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-            <h1 className="text-3xl font-bold text-gray-900">Kanban</h1>
-            
-            <div className="flex flex-col sm:flex-row gap-3">
-              {/* Busca */}
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Buscar tarefas..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 w-full sm:w-64 text-black"
-                />
-              </div>
+          {!loading && (
+            <>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+                <h1 className="text-3xl font-bold text-gray-900">Kanban</h1>
+                
+                <div className="flex flex-col sm:flex-row gap-3">
+                  {/* Busca */}
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <input
+                      type="text"
+                      placeholder="Buscar tarefas..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 w-full sm:w-64 text-black"
+                    />
+                  </div>
 
-              {/* Botões de ação */}
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setColumnModal({ isOpen: true })}
-                  className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-                >
-                  <Plus className="w-4 h-4" />
-                  Nova Coluna
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Kanban Board */}
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragStart={handleDragStart}
-            onDragEnd={handleDragEnd}
-          >
-            <div className="flex gap-6 overflow-x-auto pb-4 transition-all duration-300 ease-in-out">
-              {filteredColumns.map((column) => (
-                <Column
-                  key={column.id}
-                  column={column}
-                  onAddTask={addTaskToColumn}
-                  onEditColumn={(col) => setColumnModal({ isOpen: true, column: col })}
-                  onDeleteColumn={deleteColumn}
-                  onEditTask={editTask}
-                  onUpdateTask={updateTask}
-                  onDeleteTask={deleteTask}
-                />
-              ))}
-            </div>
-          </DndContext>
-
-          {/* Estado vazio */}
-          {filteredColumns.every(col => col.tasks.length === 0) && searchTerm && (
-            <div className="text-center py-12">
-              <div className="max-w-md mx-auto">
-                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Search className="w-8 h-8 text-gray-400" />
+                  {/* Botões de ação */}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setColumnModal({ isOpen: true })}
+                      className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Nova Coluna
+                    </button>
+                  </div>
                 </div>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhuma tarefa encontrada</h3>
-                <p className="text-gray-500">
-                  Tente ajustar os termos de busca para encontrar o que você está procurando.
-                </p>
               </div>
-            </div>
+
+              {/* Kanban Board */}
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragStart={handleDragStart}
+                onDragEnd={handleDragEnd}
+              >
+                <div className="flex gap-6 overflow-x-auto overflow-y-visible pb-4 transition-all duration-300 ease-in-out">
+                  {filteredColumns.map((column) => (
+                    <Column
+                      key={column.id}
+                      column={column}
+                      onAddTask={addTaskToColumn}
+                      onEditColumn={(col) => setColumnModal({ isOpen: true, column: col })}
+                      onDeleteColumn={deleteColumn}
+                      onEditTask={editTask}
+                      onUpdateTask={updateTask}
+                      onDeleteTask={deleteTask}
+                    />
+                  ))}
+                </div>
+              </DndContext>
+
+              {/* Estado vazio */}
+              {filteredColumns.every(col => col.tasks.length === 0) && searchTerm && (
+                <div className="text-center py-12">
+                  <div className="max-w-md mx-auto">
+                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Search className="w-8 h-8 text-gray-400" />
+                    </div>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhuma tarefa encontrada</h3>
+                    <p className="text-gray-500">
+                      Tente ajustar os termos de busca para encontrar o que você está procurando.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -1398,7 +1208,10 @@ export default function Kanban() {
       {/* Modais */}
       <TaskModal
         isOpen={taskModal.isOpen}
-        onClose={() => setTaskModal({ isOpen: false })}
+        onClose={() => {
+          setTaskModal({ isOpen: false });
+          setActiveTask(null);
+        }}
         task={taskModal.task}
         onSave={saveTask}
         columns={columns}
