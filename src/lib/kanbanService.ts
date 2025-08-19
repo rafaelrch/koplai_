@@ -6,6 +6,7 @@ export interface KanbanColumn {
   title: string;
   color: string;
   position: number;
+  view_type: 'daily' | 'approval';
   created_at: string;
   updated_at: string;
 }
@@ -16,7 +17,11 @@ export interface KanbanTask {
   description: string;
   column_id: string;
   position: number;
-  attachments: any[];
+  view_type: 'daily' | 'approval';
+  links: any[];
+  arquivos: any[];
+  // Mantemos attachments para compatibilidade durante a migração
+  attachments?: any[];
   created_at: string;
   updated_at: string;
 }
@@ -32,6 +37,22 @@ export const columnService = {
 
     if (error) {
       console.error('Erro ao buscar colunas:', error);
+      throw error;
+    }
+
+    return data || [];
+  },
+
+  // Buscar colunas por tipo de visualização
+  async getByViewType(viewType: 'daily' | 'approval'): Promise<KanbanColumn[]> {
+    const { data, error } = await supabase
+      .from('kanban_columns')
+      .select('*')
+      .eq('view_type', viewType)
+      .order('position', { ascending: true });
+
+    if (error) {
+      console.error('Erro ao buscar colunas por view_type:', error);
       throw error;
     }
 
@@ -114,6 +135,22 @@ export const taskService = {
 
     if (error) {
       console.error('Erro ao buscar tarefas:', error);
+      throw error;
+    }
+
+    return data || [];
+  },
+
+  // Buscar tarefas por tipo de visualização
+  async getByViewType(viewType: 'daily' | 'approval'): Promise<KanbanTask[]> {
+    const { data, error } = await supabase
+      .from('kanban_tasks')
+      .select('*')
+      .eq('view_type', viewType)
+      .order('position', { ascending: true });
+
+    if (error) {
+      console.error('Erro ao buscar tarefas por view_type:', error);
       throw error;
     }
 
@@ -236,6 +273,21 @@ export const kanbanService = {
     }
   },
 
+  // Carregar dados por tipo de visualização
+  async loadKanbanByView(viewType: 'daily' | 'approval'): Promise<{ columns: KanbanColumn[]; tasks: KanbanTask[] }> {
+    try {
+      const [columns, tasks] = await Promise.all([
+        columnService.getByViewType(viewType),
+        taskService.getByViewType(viewType)
+      ]);
+
+      return { columns, tasks };
+    } catch (error) {
+      console.error('Erro ao carregar dados do Kanban por view:', error);
+      throw error;
+    }
+  },
+
   // Inicializar dados padrão
   async initializeDefaultData(): Promise<void> {
     try {
@@ -243,10 +295,17 @@ export const kanbanService = {
       const existingColumns = await columnService.getAll();
       
       if (existingColumns.length === 0) {
-        // Criar colunas padrão
-        await columnService.create({ title: 'A Fazer', color: '#EF4444', position: 0 });
-        await columnService.create({ title: 'Em Progresso', color: '#F59E0B', position: 1 });
-        await columnService.create({ title: 'Concluído', color: '#10B981', position: 2 });
+        // Criar colunas para "Tarefas do dia"
+        await columnService.create({ title: 'A Fazer', color: '#3B82F6', position: 0, view_type: 'daily' });
+        await columnService.create({ title: 'Produzindo', color: '#F59E0B', position: 1, view_type: 'daily' });
+        await columnService.create({ title: 'Em aprovação', color: '#EC4899', position: 2, view_type: 'daily' });
+        await columnService.create({ title: 'Com o cliente', color: '#10B981', position: 3, view_type: 'daily' });
+
+        // Criar colunas para "Aprovação interna"
+        await columnService.create({ title: 'Pendente', color: '#F59E0B', position: 0, view_type: 'approval' });
+        await columnService.create({ title: 'Em revisão', color: '#8B5CF6', position: 1, view_type: 'approval' });
+        await columnService.create({ title: 'Aprovado', color: '#10B981', position: 2, view_type: 'approval' });
+        await columnService.create({ title: 'Reprovado', color: '#EF4444', position: 3, view_type: 'approval' });
       }
     } catch (error) {
       console.error('Erro ao inicializar dados padrão:', error);
