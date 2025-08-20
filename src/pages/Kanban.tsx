@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { Sidebar } from '../components/Sidebar';
-import { Menu, Search, Plus, X, Edit3, Trash2, Link as LinkIcon, Image as ImageIcon, Video, FileText, MoreHorizontal } from 'lucide-react';
+import { Menu, Search, Plus, X, Edit3, Trash2, Link as LinkIcon, Image as ImageIcon, Video, FileText, MoreHorizontal, Download, ExternalLink, Loader2 } from 'lucide-react';
 import { useIsMobile } from '../hooks/use-mobile';
 import { toast } from "../components/ui/sonner";
 import { kanbanService, columnService, taskService, KanbanColumn as DBColumn, KanbanTask as DBTask } from '../lib/kanbanService';
@@ -1138,6 +1138,7 @@ export default function Kanban() {
   const [activeTab, setActiveTab] = useState<'daily' | 'approval'>('daily');
   const [showGlobalAttachmentModal, setShowGlobalAttachmentModal] = useState(false);
   const [globalSelectedAttachment, setGlobalSelectedAttachment] = useState<any>(null);
+  const [downloadLoading, setDownloadLoading] = useState(false);
 
   // Função para alternar entre visualizações
   const switchView = async (view: 'daily' | 'approval') => {
@@ -1789,12 +1790,99 @@ export default function Kanban() {
                   {globalSelectedAttachment.uploadedAt && ` • ${globalSelectedAttachment.uploadedAt.toLocaleDateString()}`}
                 </p>
               </div>
-              <button 
-                onClick={() => setShowGlobalAttachmentModal(false)}
-                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-              >
-                <X className="w-5 h-5 text-gray-500" />
-              </button>
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={async () => {
+                    if (globalSelectedAttachment.type === 'link') {
+                      // Para links, abrir em nova aba
+                      const url = globalSelectedAttachment.url.startsWith('http://') || globalSelectedAttachment.url.startsWith('https://') 
+                        ? globalSelectedAttachment.url 
+                        : 'https://' + globalSelectedAttachment.url;
+                      window.open(url, '_blank');
+                    } else {
+                      // Para arquivos, fazer download
+                      try {
+                        setDownloadLoading(true);
+                        
+                        // Verificar se é uma blob URL (arquivo local) ou URL externa
+                        if (globalSelectedAttachment.url.startsWith('blob:')) {
+                          // Para blob URLs (arquivos selecionados localmente)
+                          const link = document.createElement('a');
+                          link.href = globalSelectedAttachment.url;
+                          link.download = globalSelectedAttachment.preview || 'arquivo';
+                          document.body.appendChild(link);
+                          link.click();
+                          document.body.removeChild(link);
+                        } else {
+                          // Para URLs externas, fazer fetch
+                          const response = await fetch(globalSelectedAttachment.url, {
+                            mode: 'cors'
+                          });
+                          
+                          if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                          }
+                          
+                          const blob = await response.blob();
+                          
+                          const link = document.createElement('a');
+                          const objectUrl = URL.createObjectURL(blob);
+                          link.href = objectUrl;
+                          link.download = globalSelectedAttachment.preview || 'arquivo';
+                          document.body.appendChild(link);
+                          link.click();
+                          document.body.removeChild(link);
+                          
+                          // Limpar o URL temporário
+                          URL.revokeObjectURL(objectUrl);
+                        }
+                        
+                        toast.success('Arquivo baixado com sucesso!');
+                      } catch (error) {
+                        console.error('Erro ao baixar arquivo:', error);
+                        
+                        // Se falhar, tentar método alternativo (abrir em nova aba)
+                        try {
+                          window.open(globalSelectedAttachment.url, '_blank');
+                          toast.info('Arquivo aberto em nova aba. Use Ctrl+S para salvar.');
+                        } catch (fallbackError) {
+                          toast.error('Erro ao baixar arquivo. Verifique sua conexão e tente novamente.');
+                        }
+                      } finally {
+                        setDownloadLoading(false);
+                      }
+                    }
+                  }}
+                  className={`p-2 rounded-full transition-colors group ${
+                    downloadLoading 
+                      ? 'bg-blue-50 cursor-not-allowed' 
+                      : 'hover:bg-blue-50 cursor-pointer'
+                  }`}
+                  title={
+                    downloadLoading 
+                      ? 'Baixando...' 
+                      : globalSelectedAttachment.type === 'link' 
+                        ? 'Abrir link' 
+                        : 'Baixar arquivo'
+                  }
+                  disabled={downloadLoading}
+                >
+                  {downloadLoading ? (
+                    <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
+                  ) : globalSelectedAttachment.type === 'link' ? (
+                    <ExternalLink className="w-5 h-5 text-blue-600 group-hover:text-blue-700" />
+                  ) : (
+                    <Download className="w-5 h-5 text-blue-600 group-hover:text-blue-700" />
+                  )}
+                </button>
+                <button 
+                  onClick={() => setShowGlobalAttachmentModal(false)}
+                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                  title="Fechar"
+                >
+                  <X className="w-5 h-5 text-gray-500" />
+                </button>
+              </div>
             </div>
             
             {/* Content */}
