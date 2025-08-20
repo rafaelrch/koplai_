@@ -20,8 +20,6 @@ export interface KanbanTask {
   view_type: 'daily' | 'approval';
   links: any[];
   arquivos: any[];
-  // Mantemos attachments para compatibilidade durante a migração
-  attachments?: any[];
   created_at: string;
   updated_at: string;
 }
@@ -138,7 +136,14 @@ export const taskService = {
       throw error;
     }
 
-    return data || [];
+    // Processar campos JSON se necessário
+    const processedData = (data || []).map(task => ({
+      ...task,
+      links: typeof task.links === 'string' ? JSON.parse(task.links) : (task.links || []),
+      arquivos: typeof task.arquivos === 'string' ? JSON.parse(task.arquivos) : (task.arquivos || [])
+    }));
+
+    return processedData;
   },
 
   // Buscar tarefas por tipo de visualização
@@ -154,7 +159,14 @@ export const taskService = {
       throw error;
     }
 
-    return data || [];
+    // Processar campos JSON se necessário
+    const processedData = (data || []).map(task => ({
+      ...task,
+      links: typeof task.links === 'string' ? JSON.parse(task.links) : (task.links || []),
+      arquivos: typeof task.arquivos === 'string' ? JSON.parse(task.arquivos) : (task.arquivos || [])
+    }));
+
+    return processedData;
   },
 
   // Buscar tarefas por coluna
@@ -170,23 +182,60 @@ export const taskService = {
       throw error;
     }
 
-    return data || [];
+    // Processar campos JSON se necessário
+    const processedData = (data || []).map(task => ({
+      ...task,
+      links: typeof task.links === 'string' ? JSON.parse(task.links) : (task.links || []),
+      arquivos: typeof task.arquivos === 'string' ? JSON.parse(task.arquivos) : (task.arquivos || [])
+    }));
+
+    return processedData;
   },
 
   // Criar nova tarefa
   async create(task: Omit<KanbanTask, 'id' | 'created_at' | 'updated_at'>): Promise<KanbanTask> {
+    console.log('Tentando criar tarefa com dados:', task);
+    
+    // Garantir que os campos JSON estejam corretamente formatados
+    const taskData = {
+      title: task.title,
+      description: task.description,
+      column_id: task.column_id,
+      position: task.position,
+      view_type: task.view_type,
+      links: task.links ? JSON.stringify(task.links) : '[]',
+      arquivos: task.arquivos ? JSON.stringify(task.arquivos) : '[]'
+    };
+
+    console.log('Dados formatados para Supabase:', taskData);
+    
     const { data, error } = await supabase
       .from('kanban_tasks')
-      .insert([task])
+      .insert([taskData])
       .select()
       .single();
 
     if (error) {
-      console.error('Erro ao criar tarefa:', error);
+      console.error('Erro detalhado ao criar tarefa:', {
+        error,
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      });
       throw error;
     }
 
-    return data;
+    console.log('Tarefa criada com sucesso:', data);
+    
+    // Converter de volta os campos JSON
+    const processedData = {
+      ...data,
+      links: typeof data.links === 'string' ? JSON.parse(data.links) : (data.links || []),
+      arquivos: typeof data.arquivos === 'string' ? JSON.parse(data.arquivos) : (data.arquivos || [])
+    };
+    
+    return processedData;
   },
 
   // Atualizar tarefa
