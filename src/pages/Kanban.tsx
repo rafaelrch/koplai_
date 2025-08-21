@@ -3,7 +3,8 @@ import { Sidebar } from '../components/Sidebar';
 import { Menu, Search, Plus, X, Edit3, Trash2, Link as LinkIcon, Image as ImageIcon, Video, FileText, MoreHorizontal, Download, ExternalLink, Loader2 } from 'lucide-react';
 import { useIsMobile } from '../hooks/use-mobile';
 import { toast } from "../components/ui/sonner";
-import { kanbanService, columnService, taskService, KanbanColumn as DBColumn, KanbanTask as DBTask } from '../lib/kanbanService';
+import { kanbanService, columnService, taskService, KanbanColumn as DBColumn, KanbanTask as DBTask, ViewType } from '../lib/kanbanService';
+import { supabase } from '../lib/supabaseClient';
 import {
   DndContext,
   closestCenter,
@@ -1063,71 +1064,39 @@ const ColumnModal = ({
 export default function Kanban() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   
-  // Configuração das colunas para "Tarefas do dia"
-  const dailyColumns: Column[] = [
+  // Configuração das colunas padrão para cada área
+  const defaultColumns: Column[] = [
     {
-      id: 'daily-1',
+      id: 'col-1',
       title: 'A Fazer',
       color: '#3B82F6',
       position: 0,
       tasks: []
     },
     {
-      id: 'daily-2',
+      id: 'col-2',
       title: 'Produzindo',
       color: '#F59E0B',
       position: 1,
       tasks: []
     },
     {
-      id: 'daily-3',
+      id: 'col-3',
       title: 'Em aprovação',
       color: '#EC4899',
       position: 2,
       tasks: []
     },
     {
-      id: 'daily-4',
-      title: 'Com o cliente',
+      id: 'col-4',
+      title: 'Concluído',
       color: '#10B981',
       position: 3,
       tasks: []
     }
   ];
 
-  // Configuração das colunas para "Aprovação interna"
-  const approvalColumns: Column[] = [
-    {
-      id: 'approval-1',
-      title: 'Pendente',
-      color: '#F59E0B',
-      position: 0,
-      tasks: []
-    },
-    {
-      id: 'approval-2',
-      title: 'Em revisão',
-      color: '#8B5CF6',
-      position: 1,
-      tasks: []
-    },
-    {
-      id: 'approval-3',
-      title: 'Aprovado',
-      color: '#10B981',
-      position: 2,
-      tasks: []
-    },
-    {
-      id: 'approval-4',
-      title: 'Reprovado',
-      color: '#EF4444',
-      position: 3,
-      tasks: []
-    }
-  ];
-
-  const [columns, setColumns] = useState<Column[]>(dailyColumns);
+  const [columns, setColumns] = useState<Column[]>(defaultColumns);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [createTaskModal, setCreateTaskModal] = useState<{ isOpen: boolean; columnId?: string }>({ isOpen: false });
@@ -1135,21 +1104,44 @@ export default function Kanban() {
   const [activeTask, setActiveTask] = useState<Task | null>(null);
   const [loading, setLoading] = useState(true);
   const [switchLoading, setSwitchLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'daily' | 'approval'>('daily');
+  const [activeArea, setActiveArea] = useState<ViewType>('social-media');
   const [showGlobalAttachmentModal, setShowGlobalAttachmentModal] = useState(false);
   const [globalSelectedAttachment, setGlobalSelectedAttachment] = useState<any>(null);
   const [downloadLoading, setDownloadLoading] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
 
-  // Função para alternar entre visualizações
-  const switchView = async (view: 'daily' | 'approval') => {
+  // Função para pegar usuário atual
+  const getCurrentUser = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    setCurrentUser(user);
+    return user;
+  };
+
+  // Definir as áreas disponíveis
+  const areas: Array<{ id: ViewType; name: string; color: string }> = [
+    { id: 'social-media', name: 'Social Media', color: '#3B82F6' },
+    { id: 'video-editing', name: 'Edição de vídeo', color: '#EF4444' },
+    { id: 'design', name: 'Design', color: '#10B981' },
+    { id: 'traffic', name: 'Tráfego', color: '#F59E0B' },
+    { id: 'captacao', name: 'Captação', color: '#8B5CF6' }
+  ];
+
+  // Função para alternar entre áreas
+  const switchArea = async (area: ViewType) => {
     if (switchLoading) return; // Evitar cliques múltiplos
     
-    setActiveTab(view);
+    const user = currentUser || await getCurrentUser();
+    if (!user) {
+      toast.error('Usuário não autenticado');
+      return;
+    }
+    
+    setActiveArea(area);
     setSwitchLoading(true);
     
     try {
-      // Carregar dados específicos da visualização
-      const { columns: dbColumns, tasks: dbTasks } = await kanbanService.loadKanbanByView(view);
+      // Carregar dados específicos da área e usuário
+      const { columns: dbColumns, tasks: dbTasks } = await kanbanService.loadKanbanByView(area, user.id);
       
       // Converter dados do banco para o formato do componente
       const convertedColumns: Column[] = dbColumns.map(dbCol => ({
@@ -1176,14 +1168,10 @@ export default function Kanban() {
 
       setColumns(convertedColumns);
     } catch (error) {
-      console.error('Erro ao carregar dados da visualização:', error);
+      console.error('Erro ao carregar dados da área:', error);
       toast.error('Erro ao carregar dados');
-      // Fallback para colunas locais
-      if (view === 'daily') {
-        setColumns(dailyColumns);
-      } else {
-        setColumns(approvalColumns);
-      }
+      // Fallback para colunas padrão
+      setColumns(defaultColumns);
     } finally {
       setSwitchLoading(false);
     }
@@ -1196,58 +1184,30 @@ export default function Kanban() {
     })
   );
 
-  // Carregar dados do banco de dados
-  const loadDataFromDB = async () => {
-    try {
-      setLoading(true);
-      await kanbanService.initializeDefaultData();
-      const { columns: dbColumns, tasks: dbTasks } = await kanbanService.loadKanbanByView(activeTab);
-      
-      // Converter dados do banco para o formato do componente
-      const convertedColumns: Column[] = dbColumns.map(dbCol => ({
-        id: dbCol.id,
-        title: dbCol.title,
-        color: dbCol.color,
-        position: dbCol.position,
-        tasks: dbTasks
-          .filter(dbTask => dbTask.column_id === dbCol.id)
-          .map(dbTask => ({
-            id: dbTask.id,
-            title: dbTask.title,
-            description: dbTask.description,
-            links: dbTask.links || [],
-            arquivos: dbTask.arquivos || [],
-            // Compatibilidade com estrutura antiga - combinar links e arquivos
-            attachments: [...(dbTask.links || []), ...(dbTask.arquivos || [])],
-            createdAt: new Date(dbTask.created_at),
-            columnId: dbTask.column_id,
-            position: dbTask.position
-          }))
-          .sort((a, b) => a.position - b.position)
-      })).sort((a, b) => a.position - b.position);
-
-      setColumns(convertedColumns);
-    } catch (error) {
-      console.error('Erro ao carregar dados:', error);
-      toast.error('Erro ao carregar dados do banco');
-      // Fallback para colunas locais
-      if (activeTab === 'daily') {
-        setColumns(dailyColumns);
-      } else {
-        setColumns(approvalColumns);
-      }
-          } finally {
-        setSwitchLoading(false);
-        setLoading(false);
-      }
-  };
-
   // Carregar dados na inicialização
   useEffect(() => {
     const initializeApp = async () => {
       setLoading(true);
-      await switchView('daily');
-      setLoading(false);
+      
+      try {
+        const user = await getCurrentUser();
+        if (!user) {
+          toast.error('Usuário não autenticado');
+          setLoading(false);
+          return;
+        }
+        
+        // Inicializar dados padrão para o usuário
+        await kanbanService.initializeDefaultData(user.id);
+        
+        // Carregar primeira área
+        await switchArea('social-media');
+      } catch (error) {
+        console.error('Erro na inicialização:', error);
+        toast.error('Erro ao inicializar aplicação');
+      } finally {
+        setLoading(false);
+      }
     };
     
     initializeApp();
@@ -1300,7 +1260,7 @@ export default function Kanban() {
             links: activeTask.links,
             arquivos: activeTask.arquivos,
 
-            view_type: activeTab
+            view_type: activeArea
           });
         }
 
@@ -1355,7 +1315,7 @@ export default function Kanban() {
             links: activeTask.links,
             arquivos: activeTask.arquivos,
 
-            view_type: activeTab
+            view_type: activeArea
           });
         }
 
@@ -1410,7 +1370,7 @@ export default function Kanban() {
               links: activeTask.links,
               arquivos: activeTask.arquivos,
   
-              view_type: activeTab
+              view_type: activeArea
             });
           }
 
@@ -1434,11 +1394,18 @@ export default function Kanban() {
 
   const addColumn = async (columnData: Omit<Column, 'id' | 'tasks'>) => {
     try {
+      const user = currentUser || await getCurrentUser();
+      if (!user) {
+        toast.error('Usuário não autenticado');
+        return;
+      }
+
       const newDBColumn = await columnService.create({
         title: columnData.title,
         color: columnData.color,
         position: columns.length,
-        view_type: activeTab
+        view_type: activeArea,
+        user_id: user.id
       });
 
       const newColumn: Column = {
@@ -1496,6 +1463,12 @@ export default function Kanban() {
 
   const createTask = async (taskData: Omit<Task, 'id' | 'createdAt'>) => {
     try {
+      const user = currentUser || await getCurrentUser();
+      if (!user) {
+        toast.error('Usuário não autenticado');
+        return;
+      }
+
       // Nova tarefa
       const newDBTask = await taskService.create({
         title: taskData.title,
@@ -1504,8 +1477,8 @@ export default function Kanban() {
         position: taskData.position,
         links: taskData.links,
         arquivos: taskData.arquivos,
-
-        view_type: activeTab
+        view_type: activeArea,
+        user_id: user.id
       });
 
       const newTask: Task = {
@@ -1654,78 +1627,67 @@ export default function Kanban() {
                 </div>
               </div>
 
-              {/* Switch Button */}
-              <div className="mb-6">
-                <div className="relative inline-flex bg-gray-100 rounded-lg p-1 shadow-sm">
-                  {/* Indicador deslizante animado */}
-                  <div 
-                    className={`absolute top-1 h-[calc(100%-8px)] bg-white rounded-md shadow-md transition-all duration-300 ease-in-out ${
-                      activeTab === 'daily' 
-                        ? 'left-1 w-[130px]' 
-                        : 'left-[133px] w-[140px]'
-                    }`}
-                  />
-                  
-                  <button
-                    onClick={() => switchView('daily')}
-                    disabled={switchLoading}
-                    className={`relative z-10 w-[130px] py-2 rounded-md text-sm font-medium transition-all duration-200 ${
-                      activeTab === 'daily'
-                        ? 'text-gray-900 bg-transparent'
-                        : 'text-gray-600 hover:text-gray-800 bg-transparent'
-                    } ${switchLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  >
-                    <div className="flex items-center justify-center gap-2">
-                      {switchLoading && activeTab === 'daily' && (
-                        <div className="w-3 h-3 border border-gray-400 border-t-transparent rounded-full animate-spin"></div>
-                      )}
-                      Tarefas do dia
-                    </div>
-                  </button>
-                  
-                  <button
-                    onClick={() => switchView('approval')}
-                    disabled={switchLoading}
-                    className={`relative z-10 w-[140px] py-2 rounded-md text-sm font-medium transition-all duration-200 ${
-                      activeTab === 'approval'
-                        ? 'text-gray-900 bg-transparent'
-                        : 'text-gray-600 hover:text-gray-800 bg-transparent'
-                    } ${switchLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  >
-                    <div className="flex items-center justify-center gap-2">
-                      {switchLoading && activeTab === 'approval' && (
-                        <div className="w-3 h-3 border border-gray-400 border-t-transparent rounded-full animate-spin"></div>
-                      )}
-                      Aprovação interna
-                    </div>
-                  </button>
+              {/* Tabs Navigation */}
+              <div className="mb-8">
+                <div className="inline-flex bg-[#F5F5F5] rounded-lg p-1 h-12">
+                  {areas.map((area) => (
+                    <button
+                      key={area.id}
+                      onClick={() => switchArea(area.id)}
+                      disabled={switchLoading}
+                      className={`px-6 py-1 rounded-lg text-sm font-medium transition-all duration-200 ease-out ${
+                        activeArea === area.id
+                          ? 'bg-white text-[#212121] shadow-lg'
+                          : 'text-[#9E9E9E] hover:text-[#757575]'
+                      } ${switchLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                    >
+                      <div className="flex items-center justify-center gap-2">
+                        {switchLoading && activeArea === area.id && (
+                          <div className="w-3 h-3 border-2 border-[#9E9E9E] border-t-transparent rounded-full animate-spin"></div>
+                        )}
+                        <span className="whitespace-nowrap font-inter">{area.name}</span>
+                      </div>
+                    </button>
+                  ))}
                 </div>
               </div>
               
 
               {/* Kanban Board */}
-              <div className={`transition-all duration-300 ease-in-out ${switchLoading ? 'opacity-70' : 'opacity-100'}`}>
+              <div className={`transition-all duration-500 ease-out transform ${
+                switchLoading 
+                  ? 'opacity-40 scale-98 translate-y-2' 
+                  : 'opacity-100 scale-100 translate-y-0'
+              }`}>
                 <DndContext
                   sensors={sensors}
                   collisionDetection={closestCenter}
                   onDragStart={handleDragStart}
                   onDragEnd={handleDragEnd}
                 >
-                  <div className="flex gap-6 overflow-x-auto overflow-y-visible pb-4 transition-all duration-300 ease-in-out">
-                    {filteredColumns.map((column) => (
-                      <Column
+                  <div className="flex gap-6 overflow-x-auto overflow-y-visible pb-4">
+                    {filteredColumns.map((column, index) => (
+                      <div
                         key={column.id}
-                        column={column}
-                        onAddTask={addTaskToColumn}
-                        onEditColumn={(col) => setColumnModal({ isOpen: true, column: col })}
-                        onDeleteColumn={deleteColumn}
-                        onUpdateTask={updateTask}
-                        onDeleteTask={deleteTask}
-                        onOpenAttachment={(attachment) => {
-                          setGlobalSelectedAttachment(attachment);
-                          setShowGlobalAttachmentModal(true);
+                        className="transition-all duration-300 ease-out transform"
+                        style={{
+                          animationDelay: `${index * 100}ms`,
+                          animation: switchLoading ? 'none' : 'slideInUp 0.6s ease-out forwards'
                         }}
-                      />
+                      >
+                        <Column
+                          column={column}
+                          onAddTask={addTaskToColumn}
+                          onEditColumn={(col) => setColumnModal({ isOpen: true, column: col })}
+                          onDeleteColumn={deleteColumn}
+                          onUpdateTask={updateTask}
+                          onDeleteTask={deleteTask}
+                          onOpenAttachment={(attachment) => {
+                            setGlobalSelectedAttachment(attachment);
+                            setShowGlobalAttachmentModal(true);
+                          }}
+                        />
+                      </div>
                     ))}
                   </div>
                 </DndContext>

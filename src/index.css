@@ -282,6 +282,57 @@
   background-color: rgba(0, 0, 0, 0.5);
 }
 
+/* Kanban Area Animations */
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Smooth scale animation */
+.hover\:scale-102:hover {
+  transform: scale(1.02);
+}
+
+.scale-98 {
+  transform: scale(0.98);
+}
+
+/* Area button animations */
+.area-button-active {
+  animation: slideInRight 0.3s ease-out;
+}
+
+/* Column stagger animation */
+.column-stagger {
+  animation: slideInUp 0.6s ease-out forwards;
+}
+
 /* Responsive adjustments */
 @media (max-width: 640px) {
   .min-w-\[280px\] {
@@ -290,5 +341,17 @@
   
   .max-w-\[280px\] {
     max-width: 260px;
+  }
+  
+  /* Reduce animation intensity on mobile */
+  @keyframes slideInUp {
+    from {
+      opacity: 0;
+      transform: translateY(10px) scale(0.98);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
   }
 }

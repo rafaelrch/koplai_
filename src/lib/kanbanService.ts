@@ -1,12 +1,15 @@
 import { supabase } from './supabaseClient';
 
 // Tipos
+export type ViewType = 'social-media' | 'video-editing' | 'design' | 'traffic' | 'captacao';
+
 export interface KanbanColumn {
   id: string;
   title: string;
   color: string;
   position: number;
-  view_type: 'daily' | 'approval';
+  view_type: ViewType;
+  user_id: string;
   created_at: string;
   updated_at: string;
 }
@@ -17,7 +20,8 @@ export interface KanbanTask {
   description: string;
   column_id: string;
   position: number;
-  view_type: 'daily' | 'approval';
+  view_type: ViewType;
+  user_id: string;
   links: any[];
   arquivos: any[];
   created_at: string;
@@ -41,12 +45,13 @@ export const columnService = {
     return data || [];
   },
 
-  // Buscar colunas por tipo de visualização
-  async getByViewType(viewType: 'daily' | 'approval'): Promise<KanbanColumn[]> {
+  // Buscar colunas por tipo de visualização e usuário
+  async getByViewType(viewType: ViewType, userId: string): Promise<KanbanColumn[]> {
     const { data, error } = await supabase
       .from('kanban_columns')
       .select('*')
       .eq('view_type', viewType)
+      .eq('user_id', userId)
       .order('position', { ascending: true });
 
     if (error) {
@@ -146,12 +151,13 @@ export const taskService = {
     return processedData;
   },
 
-  // Buscar tarefas por tipo de visualização
-  async getByViewType(viewType: 'daily' | 'approval'): Promise<KanbanTask[]> {
+  // Buscar tarefas por tipo de visualização e usuário
+  async getByViewType(viewType: ViewType, userId: string): Promise<KanbanTask[]> {
     const { data, error } = await supabase
       .from('kanban_tasks')
       .select('*')
       .eq('view_type', viewType)
+      .eq('user_id', userId)
       .order('position', { ascending: true });
 
     if (error) {
@@ -322,12 +328,12 @@ export const kanbanService = {
     }
   },
 
-  // Carregar dados por tipo de visualização
-  async loadKanbanByView(viewType: 'daily' | 'approval'): Promise<{ columns: KanbanColumn[]; tasks: KanbanTask[] }> {
+  // Carregar dados por tipo de visualização e usuário
+  async loadKanbanByView(viewType: ViewType, userId: string): Promise<{ columns: KanbanColumn[]; tasks: KanbanTask[] }> {
     try {
       const [columns, tasks] = await Promise.all([
-        columnService.getByViewType(viewType),
-        taskService.getByViewType(viewType)
+        columnService.getByViewType(viewType, userId),
+        taskService.getByViewType(viewType, userId)
       ]);
 
       return { columns, tasks };
@@ -337,24 +343,25 @@ export const kanbanService = {
     }
   },
 
-  // Inicializar dados padrão
-  async initializeDefaultData(): Promise<void> {
+  // Inicializar dados padrão para um usuário específico
+  async initializeDefaultData(userId: string): Promise<void> {
     try {
-      // Verificar se já existem colunas
-      const existingColumns = await columnService.getAll();
+      // Verificar se já existem colunas para este usuário
+      const { data: existingColumns } = await supabase
+        .from('kanban_columns')
+        .select('id')
+        .eq('user_id', userId);
       
-      if (existingColumns.length === 0) {
-        // Criar colunas para "Tarefas do dia"
-        await columnService.create({ title: 'A Fazer', color: '#3B82F6', position: 0, view_type: 'daily' });
-        await columnService.create({ title: 'Produzindo', color: '#F59E0B', position: 1, view_type: 'daily' });
-        await columnService.create({ title: 'Em aprovação', color: '#EC4899', position: 2, view_type: 'daily' });
-        await columnService.create({ title: 'Com o cliente', color: '#10B981', position: 3, view_type: 'daily' });
-
-        // Criar colunas para "Aprovação interna"
-        await columnService.create({ title: 'Pendente', color: '#F59E0B', position: 0, view_type: 'approval' });
-        await columnService.create({ title: 'Em revisão', color: '#8B5CF6', position: 1, view_type: 'approval' });
-        await columnService.create({ title: 'Aprovado', color: '#10B981', position: 2, view_type: 'approval' });
-        await columnService.create({ title: 'Reprovado', color: '#EF4444', position: 3, view_type: 'approval' });
+      if (!existingColumns || existingColumns.length === 0) {
+        const areas: ViewType[] = ['social-media', 'video-editing', 'design', 'traffic', 'captacao'];
+        
+        // Criar colunas padrão para cada área
+        for (const area of areas) {
+          await columnService.create({ title: 'A Fazer', color: '#3B82F6', position: 0, view_type: area, user_id: userId });
+          await columnService.create({ title: 'Produzindo', color: '#F59E0B', position: 1, view_type: area, user_id: userId });
+          await columnService.create({ title: 'Em aprovação', color: '#EC4899', position: 2, view_type: area, user_id: userId });
+          await columnService.create({ title: 'Concluído', color: '#10B981', position: 3, view_type: area, user_id: userId });
+        }
       }
     } catch (error) {
       console.error('Erro ao inicializar dados padrão:', error);
